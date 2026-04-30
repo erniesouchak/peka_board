@@ -13,11 +13,13 @@ Endpointy:
     GET  /api/config          – odczyt konfiguracji
 """
 
+from __future__ import annotations
 import json
 import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -233,7 +235,7 @@ async def api_status():
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
-def _calc_minutes(scheduled: str, delay_seconds: int | None) -> int:
+def _calc_minutes(scheduled: str, delay_seconds: Optional[int]) -> int:
     """Oblicz ile minut do odjazdu (z uwzględnieniem opóźnienia)."""
     try:
         now = datetime.now()

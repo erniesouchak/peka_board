@@ -15,8 +15,10 @@ import csv
 import io
 import logging
 import zipfile
+from __future__ import annotations
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 import requests
 
 log = logging.getLogger(__name__)
@@ -51,7 +53,7 @@ class GTFSStatic:
         # vehicle_id → {low_floor, air_conditioner, ramp, ticket_machine, usb}
         self.vehicles: dict[str, dict] = {}
 
-        self._feed_end_date: date | None = None
+        self._feed_end_date: Optional[date] = None
         self._loaded = False
 
     # ── Pobieranie i ładowanie ────────────────────────────────────────────────
@@ -204,7 +206,7 @@ class GTFSStatic:
 
     # ── Zapytania ─────────────────────────────────────────────────────────────
 
-    def is_service_active(self, service_id: str, for_date: date | None = None) -> bool:
+    def is_service_active(self, service_id: str, for_date: Optional[date] = None) -> bool:
         """Czy dany service_id jest aktywny w podanym dniu?"""
         d = for_date or date.today()
         date_str = d.strftime("%Y%m%d")
@@ -226,9 +228,9 @@ class GTFSStatic:
     def get_departures_for_stop(
         self,
         stop_code: str,
-        from_time: datetime | None = None,
+        from_time: Optional[datetime] = None,
         limit: int = 20,
-    ) -> list[dict]:
+    ) -> list:
         """
         Zwróć listę planowych odjazdów dla bollardu (stop_code) od from_time.
         Każdy element: {

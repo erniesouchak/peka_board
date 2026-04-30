@@ -6,9 +6,11 @@ Pliki aktualizowane co ~60 sekund:
   vehicle_positions.pb  – pozycje: trip_id → vehicle_id (numer boczny)
 """
 
+from __future__ import annotations
 import logging
 import time
 from datetime import datetime
+from typing import Optional
 import requests
 from google.transit import gtfs_realtime_pb2
 
@@ -92,7 +94,7 @@ class GTFSRealtime:
 
     # ── Zapytania ─────────────────────────────────────────────────────────────
 
-    def get_delay(self, trip_id: str, stop_id: str) -> int | None:
+    def get_delay(self, trip_id: str, stop_id: str) -> Optional[int]:
         """Opóźnienie w sekundach dla kursu na przystanku. None = brak danych."""
         return self._delays.get(trip_id, {}).get(stop_id)
 
@@ -139,5 +141,5 @@ class GTFSRealtime:
         return datetime.fromtimestamp(self._last_fetch).strftime("%H:%M:%S")
 
     @property
-    def error(self) -> str | None:
+    def error(self) -> Optional[str]:
         return self._fetch_error
