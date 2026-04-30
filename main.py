@@ -188,7 +188,8 @@ async def api_departures():
 @app.get("/api/status")
 async def api_status():
     return {
-        "gtfs_valid_until": str(gtfs_static._feed_end_date or "—"),
+        "gtfs_valid_from":  str(gtfs_static._feed_start_date or "—"),
+        "gtfs_valid_until": str(gtfs_static._feed_end_date   or "—"),
         "gtfs_loaded":      gtfs_static._loaded,
         "rt_last_update":   gtfs_rt.last_update,
         "rt_error":         gtfs_rt.error,

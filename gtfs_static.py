@@ -54,25 +54,68 @@ class GTFSStatic:
         self.vehicles: dict[str, dict] = {}
 
         self._feed_end_date: Optional[date] = None
+        self._feed_start_date: Optional[date] = None
         self._loaded = False
 
     # ── Pobieranie i ładowanie ────────────────────────────────────────────────
 
     def ensure_loaded(self):
-        """Załaduj dane jeśli brak lub przeterminowane."""
-        if self._loaded and self._feed_end_date and self._feed_end_date >= date.today():
+        """Załaduj dane jeśli brak lub paczka nie obejmuje dzisiaj."""
+        today = date.today()
+        if (self._loaded
+                and self._feed_end_date
+                and self._feed_start_date
+                and self._feed_start_date <= today <= self._feed_end_date):
             return
-        log.info("Pobieram paczkę GTFS…")
+        log.info("Pobieram paczkę GTFS na %s…", today)
         self._download_latest()
         self._parse_zip()
         self._load_vehicle_dict()
         self._loaded = True
-        log.info("GTFS załadowany. Ważny do: %s", self._feed_end_date)
+        log.info("GTFS załadowany. Ważny: %s – %s",
+                 self._feed_start_date, self._feed_end_date)
 
     def _download_latest(self):
-        """Pobierz najnowszy plik GTFS (bez parametru file= = najnowszy)."""
-        url = "https://www.ztm.poznan.pl/pl/dla-deweloperow/getGTFSFile"
-        r = requests.get(url, timeout=60, stream=True)
+        """Pobierz paczkę GTFS ważną na dziś."""
+        from bs4 import BeautifulSoup
+        today = date.today()
+        today_str = today.strftime("%Y%m%d")
+
+        # Pobierz listę dostępnych paczek
+        r = requests.get("https://www.ztm.poznan.pl/otwarte-dane/gtfsfiles/", timeout=15)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+        links = [a["href"] for a in soup.find_all("a", href=True) if ".zip" in a["href"]]
+
+        # Znajdź paczkę obejmującą dzisiejszą datę
+        best_url = None
+        best_start = None
+        for link in links:
+            # Wyciągnij daty z nazwy pliku np. 20260430_20260501.zip
+            filename = link.split("file=")[-1].replace(".zip", "")
+            parts = filename.split("_")
+            if len(parts) != 2:
+                continue
+            try:
+                start_str, end_str = parts[0], parts[1]
+                if start_str <= today_str <= end_str:
+                    # Preferuj paczkę z najpóźniejszą datą startu
+                    if best_start is None or start_str > best_start:
+                        best_start = start_str
+                        best_url = link
+            except Exception:
+                continue
+
+        if not best_url:
+            # Fallback: weź pierwszą paczkę z listy (najnowszą)
+            log.warning("Nie znaleziono paczki na dziś (%s), używam najnowszej", today_str)
+            best_url = links[0] if links else None
+
+        if not best_url:
+            raise RuntimeError("Brak dostępnych paczek GTFS")
+
+        log.info("Pobieram GTFS: %s", best_url)
+        r = requests.get(best_url, timeout=60, stream=True)
         r.raise_for_status()
         with open(CACHE_PATH, "wb") as f:
             for chunk in r.iter_content(chunk_size=65536):
@@ -104,11 +147,16 @@ class GTFSStatic:
             return
         rows = self._csv_reader(zf, "feed_info.txt")
         if rows:
-            end_str = rows[0].get("feed_end_date", "")
+            end_str   = rows[0].get("feed_end_date",   "")
+            start_str = rows[0].get("feed_start_date", "")
             try:
                 self._feed_end_date = datetime.strptime(end_str, "%Y%m%d").date()
             except ValueError:
                 self._feed_end_date = date.today() + timedelta(days=1)
+            try:
+                self._feed_start_date = datetime.strptime(start_str, "%Y%m%d").date()
+            except ValueError:
+                self._feed_start_date = date.today()
 
     def _parse_stops(self, zf: zipfile.ZipFile):
         self.stop_code_to_id.clear()
