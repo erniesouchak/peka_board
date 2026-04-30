@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 gtfs_rt.py – pobieranie i parsowanie GTFS-RT ZTM Poznań
 
@@ -6,7 +7,6 @@ Pliki aktualizowane co ~60 sekund:
   vehicle_positions.pb  – pozycje: trip_id → vehicle_id (numer boczny)
 """
 
-from __future__ import annotations
 import logging
 import time
 from datetime import datetime

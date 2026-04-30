@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 main.py – FastAPI backend tablicy PEKA
 
@@ -13,7 +14,6 @@ Endpointy:
     GET  /api/config          – odczyt konfiguracji
 """
 
-from __future__ import annotations
 import json
 import logging
 import os
