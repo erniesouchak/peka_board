@@ -108,65 +108,28 @@ async def api_set_config(request: Request):
     return {"ok": True, "count": len(data)}
 
 
-# ── API – wyszukiwanie przystanków ────────────────────────────────────────────
+# ── API – wyszukiwanie przystanków (GTFS) ────────────────────────────────────
 
 @app.get("/api/stops/search")
 async def search_stops(q: str = ""):
-    """Wyszukaj przystanek po nazwie używając PEKA VM API."""
+    """Wyszukaj przystanek po nazwie używając danych GTFS."""
     if len(q) < 2:
         return []
-    import requests as req
     try:
-        r = req.post(
-            "https://www.peka.poznan.pl/vm/method.vm",
-            data={"method": "getStopPoints", "p0": json.dumps({"pattern": q})},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=8,
-        )
-        data = r.json().get("success", [])
-        return [{"name": s["name"]} for s in data] if isinstance(data, list) else []
+        gtfs_static.ensure_loaded()
+        return gtfs_static.search_stops(q)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/stops/bollards")
 async def get_bollards(stop_name: str = ""):
-    """Pobierz bollardy dla przystanku (PEKA VM API)."""
+    """Pobierz bollardy dla przystanku używając danych GTFS."""
     if not stop_name:
         return []
-    import requests as req
     try:
-        r = req.post(
-            "https://www.peka.poznan.pl/vm/method.vm",
-            data={"method": "getBollardsByStopPoint",
-                  "p0": json.dumps({"name": stop_name})},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=8,
-        )
-        result = r.json().get("success", {})
-        bollards = result.get("bollards", []) if isinstance(result, dict) else []
-        out = []
-        for b in bollards:
-            boll = b.get("bollard", {})
-            dirs = b.get("directions", [])
-            symbol = boll.get("symbol", "")
-            if not symbol:
-                continue
-            dir_names = list(dict.fromkeys(
-                d.get("direction", "") for d in dirs if d.get("direction")
-            ))
-            lines = list(dict.fromkeys(
-                d.get("lineName", "") for d in dirs if d.get("lineName")
-            ))
-            direction = dir_names[0] if dir_names else "—"
-            out.append({
-                "symbol":    symbol,
-                "stop_name": stop_name,
-                "direction": direction,
-                "label":     f"{stop_name} → {direction}",
-                "lines":     lines[:8],
-            })
-        return out
+        gtfs_static.ensure_loaded()
+        return gtfs_static.get_bollards_for_stop(stop_name)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

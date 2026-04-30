@@ -296,3 +296,61 @@ class GTFSStatic:
 
     def get_vehicle_info(self, vehicle_id: str) -> dict:
         return self.vehicles.get(vehicle_id, {})
+
+    def search_stops(self, pattern: str) -> list:
+        """
+        Wyszukaj unikalne nazwy przystanków pasujące do wzorca.
+        Zwraca listę unikalnych nazw przystanków.
+        """
+        self.ensure_loaded()
+        pattern_lower = pattern.lower()
+        seen = set()
+        results = []
+        for code, sid in self.stop_code_to_id.items():
+            name = self.stop_id_to_name.get(sid, "")
+            if pattern_lower in name.lower() and name not in seen:
+                seen.add(name)
+                results.append({"name": name})
+        return sorted(results, key=lambda x: x["name"])
+
+    def get_bollards_for_stop(self, stop_name: str) -> list:
+        """
+        Zwróć wszystkie bollardy dla przystanku o podanej nazwie.
+        Dla każdego bollardu dołącz linie które przez niego przejeżdżają.
+        """
+        self.ensure_loaded()
+        results = []
+        for code, sid in self.stop_code_to_id.items():
+            name = self.stop_id_to_name.get(sid, "")
+            if name != stop_name:
+                continue
+
+            # Znajdź linie przejeżdżające przez ten bollard
+            lines = set()
+            for st in self.stop_times.get(sid, []):
+                trip = self.trips.get(st["trip_id"])
+                if trip:
+                    line = self.routes.get(trip["route_id"], "")
+                    if line:
+                        lines.add(line)
+
+            # Znajdź dominujący kierunek (headsign) dla tego bollardu
+            directions = {}
+            for st in self.stop_times.get(sid, []):
+                trip = self.trips.get(st["trip_id"])
+                if trip and trip["headsign"]:
+                    directions[trip["headsign"]] = directions.get(trip["headsign"], 0) + 1
+
+            direction = max(directions, key=directions.get) if directions else "—"
+            sorted_lines = sorted(lines, key=lambda x: (len(x), x))
+
+            results.append({
+                "symbol":    code,
+                "stop_name": stop_name,
+                "direction": direction,
+                "label":     f"{stop_name} → {direction}",
+                "lines":     sorted_lines[:8],
+            })
+
+        # Sortuj po symbolu
+        return sorted(results, key=lambda x: x["symbol"])
