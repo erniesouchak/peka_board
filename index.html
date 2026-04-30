@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEKA Board</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ── SIATKA KAFELKÓW ─────────────────────────────────────── -->
+<div class="board">
+
+  <!-- Kafelek: Zegar + Data -->
+  <div class="tile tile-clock" id="tile-clock">
+    <div class="clock-time" id="clock-time">--:--:--</div>
+    <div class="clock-date" id="clock-date">-----------</div>
+    <div class="clock-status" id="clock-status"></div>
+  </div>
+
+  <!-- Kafelki odjazdów – generowane dynamicznie przez JS -->
+  <div id="departures-container"></div>
+
+</div>
+
+<!-- ── PASEK DOLNY ─────────────────────────────────────────── -->
+<div class="statusbar">
+  <span id="sb-gtfs">GTFS: ładowanie…</span>
+  <span id="sb-rt">RT: —</span>
+  <span id="sb-refresh">Odświeżanie…</span>
+  <button onclick="fetchDepartures()" class="btn-refresh">⟳ Odśwież</button>
+  <a href="/config-page" class="btn-config">⚙ Konfiguracja</a>
+</div>
+
+{% if not has_config %}
+<div class="overlay-setup">
+  <div class="setup-box">
+    <h2>Witaj w PEKA Board</h2>
+    <p>Skonfiguruj przystanki aby zobaczyć tablicę odjazdów.</p>
+    <a href="/config-page" class="btn-big">⚙ Konfiguruj przystanki</a>
+  </div>
+</div>
+{% endif %}
+
+<script src="/static/app.js"></script>
+</body>
+</html>

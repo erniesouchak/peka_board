@@ -1,0 +1,8 @@
+# PEKA Board – wymagania Python
+
+fastapi
+uvicorn[standard]
+requests
+jinja2
+gtfs-realtime-bindings
+protobuf

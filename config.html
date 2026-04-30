@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konfiguracja – PEKA Board</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="config-body">
+
+<div class="config-wrap">
+  <div class="config-header">
+    <span class="cfg-logo">■ PEKA Board</span>
+    <span class="cfg-title">Konfiguracja przystanków</span>
+    <a href="/" class="btn-back">← Tablica</a>
+  </div>
+
+  <div class="config-main">
+
+    <!-- Lewa: wyszukiwanie -->
+    <div class="cfg-left">
+
+      <div class="cfg-section-title">1. Wyszukaj przystanek</div>
+      <div class="cfg-search-row">
+        <input type="text" id="inp-search" placeholder="Wpisz nazwę przystanku…"
+               oninput="onSearchType()" autocomplete="off">
+        <span id="search-spinner" class="spinner hidden">⏳</span>
+      </div>
+
+      <div class="cfg-section-title" style="margin-top:12px">Przystanki:</div>
+      <div class="cfg-list-wrap">
+        <ul id="list-stops" class="cfg-list"></ul>
+      </div>
+
+      <div class="cfg-section-title" style="margin-top:12px">2. Wybierz słupek (bollard):</div>
+      <div class="cfg-list-wrap">
+        <ul id="list-bollards" class="cfg-list"></ul>
+      </div>
+
+      <button onclick="addBollard()" class="btn-add">➕ Dodaj do tablicy</button>
+    </div>
+
+    <!-- Środek: strzałka -->
+    <div class="cfg-arrow">→</div>
+
+    <!-- Prawa: wybrane bollardy -->
+    <div class="cfg-right">
+      <div class="cfg-section-title">
+        3. Tablica
+        <span id="cfg-count" class="cfg-count">0 / 6</span>
+      </div>
+
+      <div class="cfg-list-wrap cfg-list-selected-wrap">
+        <ul id="list-selected" class="cfg-list cfg-list-selected"></ul>
+      </div>
+
+      <div class="cfg-move-row">
+        <button onclick="moveUp()" class="btn-move">⬆ Wyżej</button>
+        <button onclick="moveDown()" class="btn-move">⬇ Niżej</button>
+      </div>
+      <button onclick="removeSelected()" class="btn-remove">🗑 Usuń zaznaczony</button>
+    </div>
+
+  </div>
+
+  <!-- Dolny pasek -->
+  <div class="cfg-footer">
+    <button onclick="saveConfig()" class="btn-save">✔ Zapisz i wróć do tablicy</button>
+    <span id="cfg-msg" class="cfg-msg"></span>
+  </div>
+</div>
+
+<script>
+// ── Stan ──────────────────────────────────────────────────────────────────────
+let searchResults   = [];
+let bollardResults  = [];
+let selectedBollards = {{ current_config | safe }};
+let searchJob       = null;
+let selectedStop    = null;
+let selectedBollard = null;
+let selectedIdx     = -1;
+
+// ── Inicjalizacja ─────────────────────────────────────────────────────────────
+renderSelected();
+
+// ── Wyszukiwanie ──────────────────────────────────────────────────────────────
+function onSearchType() {
+  clearTimeout(searchJob);
+  searchJob = setTimeout(doSearch, 400);
+}
+
+async function doSearch() {
+  const q = document.getElementById("inp-search").value.trim();
+  if (q.length < 2) { clearList("list-stops"); return; }
+  document.getElementById("search-spinner").classList.remove("hidden");
+  try {
+    const r = await fetch(`/api/stops/search?q=${encodeURIComponent(q)}`);
+    searchResults = await r.json();
+    renderList("list-stops", searchResults.map(s => s.name), onStopClick);
+  } finally {
+    document.getElementById("search-spinner").classList.add("hidden");
+  }
+}
+
+async function onStopClick(idx) {
+  selectedStop = searchResults[idx];
+  highlightList("list-stops", idx);
+  clearList("list-bollards");
+  bollardResults = [];
+  selectedBollard = null;
+  document.getElementById("search-spinner").classList.remove("hidden");
+  try {
+    const r = await fetch(`/api/stops/bollards?stop_name=${encodeURIComponent(selectedStop.name)}`);
+    bollardResults = await r.json();
+    renderList("list-bollards",
+      bollardResults.map(b => `${b.symbol}  →  ${b.direction}  [${b.lines.join(", ")}]`),
+      onBollardClick);
+  } finally {
+    document.getElementById("search-spinner").classList.add("hidden");
+  }
+}
+
+function onBollardClick(idx) {
+  selectedBollard = bollardResults[idx];
+  highlightList("list-bollards", idx);
+}
+
+// ── Zarządzanie listą ─────────────────────────────────────────────────────────
+function addBollard() {
+  if (!selectedBollard) { showMsg("Zaznacz słupek z listy."); return; }
+  if (selectedBollards.length >= 6) { showMsg("Maksymalnie 6 słupków."); return; }
+  if (selectedBollards.some(b => b.symbol === selectedBollard.symbol)) {
+    showMsg("Ten słupek jest już na liście."); return;
+  }
+  selectedBollards.push(selectedBollard);
+  renderSelected();
+}
+
+function removeSelected() {
+  if (selectedIdx < 0) return;
+  selectedBollards.splice(selectedIdx, 1);
+  selectedIdx = -1;
+  renderSelected();
+}
+
+function moveUp() {
+  if (selectedIdx <= 0) return;
+  [selectedBollards[selectedIdx-1], selectedBollards[selectedIdx]] =
+  [selectedBollards[selectedIdx], selectedBollards[selectedIdx-1]];
+  selectedIdx--;
+  renderSelected();
+  highlightList("list-selected", selectedIdx);
+}
+
+function moveDown() {
+  if (selectedIdx < 0 || selectedIdx >= selectedBollards.length-1) return;
+  [selectedBollards[selectedIdx], selectedBollards[selectedIdx+1]] =
+  [selectedBollards[selectedIdx+1], selectedBollards[selectedIdx]];
+  selectedIdx++;
+  renderSelected();
+  highlightList("list-selected", selectedIdx);
+}
+
+function renderSelected() {
+  renderList("list-selected",
+    selectedBollards.map((b, i) => `${i+1}. ${b.label}  (${b.symbol})`),
+    (idx) => { selectedIdx = idx; highlightList("list-selected", idx); }
+  );
+  const cnt = document.getElementById("cfg-count");
+  cnt.textContent = `${selectedBollards.length} / 6`;
+  cnt.style.color = selectedBollards.length >= 6 ? "#e74c3c" : "#f5a623";
+}
+
+// ── Zapis ─────────────────────────────────────────────────────────────────────
+async function saveConfig() {
+  if (selectedBollards.length === 0) { showMsg("Dodaj co najmniej jeden słupek."); return; }
+  const r = await fetch("/api/config", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(selectedBollards),
+  });
+  if (r.ok) {
+    window.location.href = "/";
+  } else {
+    showMsg("Błąd zapisu konfiguracji.");
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function renderList(id, items, onClick) {
+  const ul = document.getElementById(id);
+  ul.innerHTML = "";
+  if (!items.length) {
+    ul.innerHTML = "<li class='cfg-empty'>—</li>"; return;
+  }
+  items.forEach((text, i) => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    li.onclick = () => onClick(i);
+    ul.appendChild(li);
+  });
+}
+
+function clearList(id) {
+  document.getElementById(id).innerHTML = "";
+}
+
+function highlightList(id, idx) {
+  const lis = document.querySelectorAll(`#${id} li`);
+  lis.forEach((li, i) => li.classList.toggle("active", i === idx));
+}
+
+function showMsg(msg) {
+  const el = document.getElementById("cfg-msg");
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ""; }, 3000);
+}
+</script>
+</body>
+</html>

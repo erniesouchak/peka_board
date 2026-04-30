@@ -1,0 +1,257 @@
+"""
+main.py – FastAPI backend tablicy PEKA
+
+Uruchomienie:
+    pip install fastapi uvicorn requests gtfs-realtime-bindings protobuf jinja2
+    uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+
+Endpointy:
+    GET  /                    – dashboard HTML
+    GET  /api/departures      – odjazdy JSON dla wszystkich bollardów
+    GET  /api/status          – status GTFS (ważność, ostatni RT)
+    POST /api/config          – zapis konfiguracji bollardów
+    GET  /api/config          – odczyt konfiguracji
+"""
+
+import json
+import logging
+import os
+from datetime import datetime
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from gtfs_static import GTFSStatic
+from gtfs_rt import GTFSRealtime
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger(__name__)
+
+CONFIG_FILE = Path("config.json")
+MAX_DEPARTURES_PER_STOP = 10
+
+app = FastAPI(title="PEKA Board")
+
+# Statyczne pliki i szablony
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# Globalne instancje GTFS
+gtfs_static = GTFSStatic()
+gtfs_rt     = GTFSRealtime()
+
+
+# ── Konfiguracja ──────────────────────────────────────────────────────────────
+
+def load_config() -> list[dict]:
+    if CONFIG_FILE.exists():
+        try:
+            return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return []
+
+
+def save_config(data: list[dict]):
+    CONFIG_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# ── Startup ───────────────────────────────────────────────────────────────────
+
+@app.on_event("startup")
+async def startup():
+    log.info("Startuję PEKA Board…")
+    try:
+        gtfs_static.ensure_loaded()
+    except Exception as e:
+        log.error("Błąd ładowania GTFS: %s", e)
+
+
+# ── Endpointy HTML ────────────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    config = load_config()
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "has_config": bool(config),
+    })
+
+
+@app.get("/config-page", response_class=HTMLResponse)
+async def config_page(request: Request):
+    config = load_config()
+    return templates.TemplateResponse("config.html", {
+        "request": request,
+        "current_config": json.dumps(config, ensure_ascii=False),
+    })
+
+
+# ── API – konfiguracja ────────────────────────────────────────────────────────
+
+@app.get("/api/config")
+async def api_get_config():
+    return load_config()
+
+
+@app.post("/api/config")
+async def api_set_config(request: Request):
+    data = await request.json()
+    if not isinstance(data, list):
+        return JSONResponse({"error": "Oczekiwano listy bollardów"}, status_code=400)
+    save_config(data)
+    return {"ok": True, "count": len(data)}
+
+
+# ── API – wyszukiwanie przystanków ────────────────────────────────────────────
+
+@app.get("/api/stops/search")
+async def search_stops(q: str = ""):
+    """Wyszukaj przystanek po nazwie używając PEKA VM API."""
+    if len(q) < 2:
+        return []
+    import requests as req
+    try:
+        r = req.post(
+            "https://www.peka.poznan.pl/vm/method.vm",
+            data={"method": "getStopPoints", "p0": json.dumps({"pattern": q})},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=8,
+        )
+        data = r.json().get("success", [])
+        return [{"name": s["name"]} for s in data] if isinstance(data, list) else []
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/stops/bollards")
+async def get_bollards(stop_name: str = ""):
+    """Pobierz bollardy dla przystanku (PEKA VM API)."""
+    if not stop_name:
+        return []
+    import requests as req
+    try:
+        r = req.post(
+            "https://www.peka.poznan.pl/vm/method.vm",
+            data={"method": "getBollardsByStopPoint",
+                  "p0": json.dumps({"name": stop_name})},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=8,
+        )
+        result = r.json().get("success", {})
+        bollards = result.get("bollards", []) if isinstance(result, dict) else []
+        out = []
+        for b in bollards:
+            boll = b.get("bollard", {})
+            dirs = b.get("directions", [])
+            symbol = boll.get("symbol", "")
+            if not symbol:
+                continue
+            dir_names = list(dict.fromkeys(
+                d.get("direction", "") for d in dirs if d.get("direction")
+            ))
+            lines = list(dict.fromkeys(
+                d.get("lineName", "") for d in dirs if d.get("lineName")
+            ))
+            direction = dir_names[0] if dir_names else "—"
+            out.append({
+                "symbol":    symbol,
+                "stop_name": stop_name,
+                "direction": direction,
+                "label":     f"{stop_name} → {direction}",
+                "lines":     lines[:8],
+            })
+        return out
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ── API – odjazdy ─────────────────────────────────────────────────────────────
+
+@app.get("/api/departures")
+async def api_departures():
+    """
+    Zwróć odjazdy dla wszystkich skonfigurowanych bollardów.
+    Format: [ { bollard: {...}, departures: [...] }, ... ]
+    """
+    config = load_config()
+    if not config:
+        return []
+
+    try:
+        gtfs_static.ensure_loaded()
+    except Exception as e:
+        log.error("GTFS nie załadowany: %s", e)
+        return JSONResponse({"error": str(e)}, status_code=503)
+
+    result = []
+    for bollard in config:
+        symbol = bollard.get("symbol", "")
+        deps = gtfs_static.get_departures_for_stop(
+            symbol, limit=MAX_DEPARTURES_PER_STOP
+        )
+
+        # Wzbogać o GTFS-RT
+        try:
+            gtfs_rt.enrich_departures(deps, gtfs_static.stop_code_to_id, symbol)
+        except Exception as e:
+            log.warning("RT enrich błąd: %s", e)
+
+        # Dodaj informacje o pojeździe
+        for dep in deps:
+            vid = dep.get("vehicle_id", "")
+            dep["vehicle_info"] = gtfs_static.get_vehicle_info(vid) if vid else {}
+
+            # Przelicz minuty
+            dep["minutes"] = _calc_minutes(
+                dep["scheduled_departure"],
+                dep.get("delay_seconds"),
+            )
+
+        result.append({
+            "bollard":    bollard,
+            "departures": deps,
+            "error":      None,
+        })
+
+    return result
+
+
+@app.get("/api/status")
+async def api_status():
+    return {
+        "gtfs_valid_until": str(gtfs_static._feed_end_date or "—"),
+        "gtfs_loaded":      gtfs_static._loaded,
+        "rt_last_update":   gtfs_rt.last_update,
+        "rt_error":         gtfs_rt.error,
+        "time":             datetime.now().strftime("%H:%M:%S"),
+    }
+
+
+# ── Helper ────────────────────────────────────────────────────────────────────
+
+def _calc_minutes(scheduled: str, delay_seconds: int | None) -> int:
+    """Oblicz ile minut do odjazdu (z uwzględnieniem opóźnienia)."""
+    try:
+        now = datetime.now()
+        parts = scheduled.split(":")
+        h, m, s = int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0
+
+        # Obsługa godzin >24 (po północy)
+        from datetime import date, timedelta
+        base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        dep_dt = base + timedelta(hours=h, minutes=m, seconds=s)
+
+        # Dodaj opóźnienie
+        if delay_seconds is not None:
+            dep_dt += timedelta(seconds=delay_seconds)
+
+        diff = (dep_dt - now).total_seconds()
+        if diff < -60:  # kurs już minął
+            return -1
+        return max(0, int(diff // 60))
+    except Exception:
+        return -1
