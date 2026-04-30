@@ -492,6 +492,8 @@ class GTFSStatic:
             self.stop_times[sid].sort(key=lambda x: x["departure"])
 
         log.info("Dodano %d nocnych wpisów stop_times", added)
+
+    def _normalize_time(self, gtfs_time: str, base_date: date) -> tuple:
         """Obsługa godzin >24:00 (kursy po północy)."""
         parts = gtfs_time.split(":")
         h, m, s = int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0
