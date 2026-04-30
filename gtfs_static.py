@@ -25,7 +25,8 @@ log = logging.getLogger(__name__)
 
 GTFS_LIST_URL  = "https://www.ztm.poznan.pl/otwarte-dane/gtfsfiles/"
 GTFS_BASE_URL  = "https://www.ztm.poznan.pl/pl/dla-deweloperow/getGTFSFile/?file="
-CACHE_PATH     = Path("gtfs_cache.zip")
+CACHE_PATH      = Path("gtfs_cache.zip")
+CACHE_PREV_PATH = Path("gtfs_cache_prev.zip")
 VEHICLE_DICT_URL = "https://www.ztm.poznan.pl/pl/dla-deweloperow/getGtfsRtFile/?file=vehicle_dictionary.csv"
 
 
@@ -75,59 +76,94 @@ class GTFSStatic:
         log.info("GTFS załadowany. Ważny: %s – %s",
                  self._feed_start_date, self._feed_end_date)
 
-    def _download_latest(self):
-        """Pobierz paczkę GTFS ważną na dziś."""
+    def ensure_loaded(self):
+        """Załaduj dane jeśli brak lub paczka nie obejmuje dzisiaj."""
+        today = date.today()
+        if (self._loaded
+                and self._feed_end_date
+                and self._feed_start_date
+                and self._feed_start_date <= today <= self._feed_end_date):
+            return
+        log.info("Pobieram paczkę GTFS na %s…", today)
+        prev_url, curr_url = self._find_package_urls()
+        self._download_file(curr_url, CACHE_PATH)
+        if prev_url:
+            self._download_file(prev_url, CACHE_PREV_PATH)
+        else:
+            CACHE_PREV_PATH.unlink(missing_ok=True)
+        self._parse_zip()
+        self._load_vehicle_dict()
+        self._loaded = True
+        log.info("GTFS załadowany. Ważny: %s – %s",
+                 self._feed_start_date, self._feed_end_date)
+
+    def _find_package_urls(self) -> tuple:
+        """Znajdź URL paczki na dziś i poprzedniej (dla nocnych)."""
         from bs4 import BeautifulSoup
         today = date.today()
         today_str = today.strftime("%Y%m%d")
 
-        # Pobierz listę dostępnych paczek
         r = requests.get("https://www.ztm.poznan.pl/otwarte-dane/gtfsfiles/", timeout=15)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         links = [a["href"] for a in soup.find_all("a", href=True) if ".zip" in a["href"]]
 
-        # Znajdź paczkę obejmującą dzisiejszą datę
-        best_url = None
-        best_start = None
+        # Zbierz wszystkie paczki z datami
+        packages = []
         for link in links:
-            # Wyciągnij daty z nazwy pliku np. 20260430_20260501.zip
             filename = link.split("file=")[-1].replace(".zip", "")
             parts = filename.split("_")
             if len(parts) != 2:
                 continue
             try:
                 start_str, end_str = parts[0], parts[1]
-                if start_str <= today_str <= end_str:
-                    # Preferuj paczkę z najpóźniejszą datą startu
-                    if best_start is None or start_str > best_start:
-                        best_start = start_str
-                        best_url = link
+                packages.append((start_str, end_str, link))
             except Exception:
                 continue
 
-        if not best_url:
-            # Fallback: weź pierwszą paczkę z listy (najnowszą)
-            log.warning("Nie znaleziono paczki na dziś (%s), używam najnowszej", today_str)
-            best_url = links[0] if links else None
+        # Znajdź paczkę na dziś
+        curr_url = None
+        curr_start = None
+        curr_end = None
+        for start_str, end_str, link in packages:
+            if start_str <= today_str <= end_str:
+                if curr_start is None or start_str > curr_start:
+                    curr_start = start_str
+                    curr_end   = end_str
+                    curr_url   = link
 
-        if not best_url:
-            raise RuntimeError("Brak dostępnych paczek GTFS")
+        if not curr_url:
+            log.warning("Brak paczki na dziś, używam najnowszej")
+            curr_url = packages[0][2] if packages else None
+            curr_start = packages[0][0] if packages else None
 
-        log.info("Pobieram GTFS: %s", best_url)
-        r = requests.get(best_url, timeout=60, stream=True)
+        # Znajdź poprzednią paczkę (kończy się dzień przed startem aktualnej)
+        prev_url = None
+        if curr_start:
+            yesterday_str = (datetime.strptime(curr_start, "%Y%m%d").date()
+                             - timedelta(days=1)).strftime("%Y%m%d")
+            for start_str, end_str, link in packages:
+                if start_str <= yesterday_str <= end_str:
+                    prev_url = link
+                    break
+
+        log.info("Paczka bieżąca: %s", curr_url)
+        log.info("Paczka poprzednia: %s", prev_url)
+        return prev_url, curr_url
+
+    def _download_file(self, url: str, path: Path):
+        """Pobierz plik GTFS pod wskazaną ścieżkę."""
+        r = requests.get(url, timeout=60, stream=True)
         r.raise_for_status()
-        with open(CACHE_PATH, "wb") as f:
+        with open(path, "wb") as f:
             for chunk in r.iter_content(chunk_size=65536):
                 f.write(chunk)
-        log.info("Zapisano GTFS → %s (%.1f MB)", CACHE_PATH, CACHE_PATH.stat().st_size / 1e6)
+        log.info("Zapisano %s (%.1f MB)", path, path.stat().st_size / 1e6)
 
     def _parse_zip(self):
-        """Parsuj wszystkie pliki CSV z ZIP-a."""
+        """Parsuj pliki CSV z ZIP-a. Dodatkowo doładuj nocne z poprzedniej paczki."""
         with zipfile.ZipFile(CACHE_PATH) as zf:
-            names = zf.namelist()
-            log.debug("Pliki w ZIP: %s", names)
-
+            log.debug("Pliki w ZIP: %s", zf.namelist())
             self._parse_feed_info(zf)
             self._parse_stops(zf)
             self._parse_routes(zf)
@@ -135,6 +171,12 @@ class GTFSStatic:
             self._parse_calendar(zf)
             self._parse_calendar_dates(zf)
             self._parse_stop_times(zf)
+
+        # Doładuj nocne kursy z poprzedniej paczki (godziny >= 24:00)
+        if CACHE_PREV_PATH.exists():
+            log.info("Doładowuję nocne kursy z poprzedniej paczki…")
+            self._merge_overnight_from_prev()
+            log.info("Nocne kursy doładowane.")
 
     def _csv_reader(self, zf: zipfile.ZipFile, filename: str):
         """Otwórz plik CSV z ZIP-a jako DictReader."""
@@ -313,7 +355,10 @@ class GTFSStatic:
 
             # GTFS pozwala na godziny >24:00 dla kursów po północy
             dep_norm, dep_date = self._normalize_time(dep, today)
-            if dep_norm < now_str and dep_date <= today:
+            # Porównuj tylko jeśli kurs jest z dzisiaj lub następnego dnia
+            if dep_date == today and dep_norm < now_str:
+                continue
+            if dep_date < today:
                 continue
 
             line = self.routes.get(trip["route_id"], "?")
@@ -334,7 +379,119 @@ class GTFSStatic:
 
         return results
 
-    def _normalize_time(self, gtfs_time: str, base_date: date) -> tuple[str, date]:
+    def _merge_overnight_from_prev(self):
+        """
+        Z poprzedniej paczki GTFS załaduj tylko kursy nocne (departure >= 24:00).
+        Dodaj je do istniejących stop_times, trips i routes.
+        """
+        with zipfile.ZipFile(CACHE_PREV_PATH) as zf:
+            # Trips z poprzedniej paczki
+            prev_trips = {}
+            for row in self._csv_reader(zf, "trips.txt"):
+                prev_trips[row["trip_id"].strip()] = {
+                    "route_id":   row["route_id"].strip(),
+                    "service_id": row["service_id"].strip(),
+                    "headsign":   row.get("trip_headsign", "").strip(),
+                    "direction":  row.get("direction_id", "0").strip(),
+                }
+
+            # Routes z poprzedniej paczki
+            prev_routes = {}
+            for row in self._csv_reader(zf, "routes.txt"):
+                prev_routes[row["route_id"].strip()] = row["route_short_name"].strip()
+
+            # Calendar z poprzedniej paczki
+            prev_calendar = {}
+            if "calendar.txt" in zf.namelist():
+                day_names = ["monday","tuesday","wednesday","thursday",
+                             "friday","saturday","sunday"]
+                for row in self._csv_reader(zf, "calendar.txt"):
+                    active_days = {
+                        i for i, d in enumerate(day_names)
+                        if row.get(d, "0").strip() == "1"
+                    }
+                    try:
+                        start = datetime.strptime(
+                            row["start_date"].strip(), "%Y%m%d").date()
+                        end   = datetime.strptime(
+                            row["end_date"].strip(),   "%Y%m%d").date()
+                    except ValueError:
+                        continue
+                    prev_calendar[row["service_id"].strip()] = {
+                        "days": active_days, "start": start, "end": end
+                    }
+
+            # Calendar dates z poprzedniej paczki
+            prev_cal_dates: dict[str, dict[str, int]] = {}
+            if "calendar_dates.txt" in zf.namelist():
+                for row in self._csv_reader(zf, "calendar_dates.txt"):
+                    sid = row["service_id"].strip()
+                    dt  = row["date"].strip()
+                    exc = int(row.get("exception_type", "1").strip())
+                    prev_cal_dates.setdefault(sid, {})[dt] = exc
+
+            # Wczoraj = dzień dla którego szukamy nocnych
+            yesterday = date.today() - timedelta(days=1)
+
+            added = 0
+            for row in self._csv_reader(zf, "stop_times.txt"):
+                dep = row.get("departure_time", "").strip()
+                if not dep:
+                    continue
+
+                # Tylko kursy po północy (>= 24:00)
+                try:
+                    h = int(dep.split(":")[0])
+                except ValueError:
+                    continue
+                if h < 24:
+                    continue
+
+                trip_id = row["trip_id"].strip()
+                trip    = prev_trips.get(trip_id)
+                if not trip:
+                    continue
+
+                # Sprawdź czy kurs był aktywny wczoraj
+                service_id = trip["service_id"]
+                date_str   = yesterday.strftime("%Y%m%d")
+                dow        = yesterday.weekday()
+
+                exc = prev_cal_dates.get(service_id, {}).get(date_str)
+                if exc == 2:
+                    continue
+                if exc != 1:
+                    cal = prev_calendar.get(service_id)
+                    if not cal:
+                        continue
+                    if not (cal["start"] <= yesterday <= cal["end"]
+                            and dow in cal["days"]):
+                        continue
+
+                # Dodaj trip i route do głównych słowników (z prefiksem prev_)
+                prefixed_trip_id = f"prev_{trip_id}"
+                if prefixed_trip_id not in self.trips:
+                    self.trips[prefixed_trip_id] = trip
+                    route_id = trip["route_id"]
+                    if route_id not in self.routes:
+                        self.routes[route_id] = prev_routes.get(route_id, "?")
+
+                # Dodaj stop_time
+                sid = row["stop_id"].strip()
+                self.stop_times.setdefault(sid, []).append({
+                    "trip_id":   prefixed_trip_id,
+                    "arrival":   row.get("arrival_time", "").strip(),
+                    "departure": dep,
+                    "seq":       int(row.get("stop_sequence", "0").strip()),
+                    "overnight": True,
+                })
+                added += 1
+
+        # Posortuj ponownie po doładowaniu
+        for sid in self.stop_times:
+            self.stop_times[sid].sort(key=lambda x: x["departure"])
+
+        log.info("Dodano %d nocnych wpisów stop_times", added)
         """Obsługa godzin >24:00 (kursy po północy)."""
         parts = gtfs_time.split(":")
         h, m, s = int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0

@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 CONFIG_FILE = Path("config.json")
-MAX_DEPARTURES_PER_STOP = 10
+MAX_DEPARTURES_PER_STOP = 20
 
 app = FastAPI(title="PEKA Board")
 
