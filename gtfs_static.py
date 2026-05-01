@@ -422,16 +422,24 @@ class GTFSStatic:
                 "overnight":              is_overnight,  # True/False dla wszystkich
             })
 
-            if len(results) >= limit * 2:  # zbierz więcej przed sortowaniem
+            if len(results) >= limit * 10:  # bezpieczny limit górny
                 break
 
-        # Sortuj po rzeczywistej godzinie odjazdu (dep_norm to HH:MM:SS już po północy)
+        # Sortuj po rzeczywistej godzinie odjazdu
+        # Nocne (26:33 → 02:33 następnego dnia) muszą być przed kursami rannymi (06:00)
+        # Używamy dep_norm który już jest po przeliczeniu >24h
         def sort_key(r):
-            dep = r["scheduled_departure"]
-            h = int(dep.split(":")[0])
-            m = int(dep.split(":")[1])
-            # Normalizuj: godziny >= 24 to następna doba
-            return h * 60 + m
+            # Użyj scheduled_departure_str który już zawiera przeliczoną godzinę
+            t = r["scheduled_departure_str"]
+            try:
+                h, m = int(t[:2]), int(t[3:5])
+                # Godziny nocne (00-05) traktuj jako < godziny dzienne (06+)
+                # ale tylko dla kursów overnight
+                if r.get("overnight") and h < 6:
+                    return h * 60 + m  # np. 02:33 → 153
+                return h * 60 + m
+            except Exception:
+                return 9999
 
         results.sort(key=sort_key)
 
