@@ -84,6 +84,7 @@ function renderDepartures(data) {
       hdr.className = "dep-header";
       hdr.innerHTML = `
         <div class="dep-grid">
+          <span>Linia</span>
           <span>Godz.rozk.</span>
           <span style="text-align:left;padding-left:8px">Kierunek</span>
           <span style="text-align:left;padding-left:6px">Gdzie jest</span>
@@ -91,7 +92,6 @@ function renderDepartures(data) {
           <span>Godz.rzecz.</span>
           <span>Opóźn.</span>
           <span>Pojazd</span>
-          <span>Info</span>
         </div>`;
       tile.appendChild(hdr);
 
@@ -143,39 +143,50 @@ function buildDepRow(dep) {
     else             { delayText = `${dm}'`;   delayClass = "early";  }
   }
 
-  // Pojazd — pokazuj linia/brygada, vehicle_id używaj do cech
-  const vid = dep.vehicle_label || dep.vehicle_id || "";
+  // Pojazd — numer boczny + ikony
+  const vid    = dep.vehicle_id    || "";   // numer boczny (6060)
+  const vlabel = dep.vehicle_label || "";   // linia/brygada (610/2)
   const isLive = dep.realtime && vid;
-  const vehicleClass = isLive ? "live" : "";
+  const vehNumClass = isLive ? "live" : "nodata";
+  const vehDisplay  = vid || "—";
 
-  // Ikony
   const vi = dep.vehicle_info || {};
-  const icons = [
-    { key: "low_floor",       icon: "🔽", title: "Niska podłoga" },
-    { key: "air_conditioner", icon: "❄",  title: "Klimatyzacja"  },
-    { key: "ticket_machine",  icon: "🎟",  title: "Biletomat"    },
-  ];
 
-  const iconsHtml = icons.map(b =>
-    `<span class="icon-badge ${vi[b.key] ? 'active' : ''}" title="${b.title}">${b.icon}</span>`
-  ).join("");
+  // Niska podłoga: low_floor_level: 0=brak, 1=pełna, 2=częściowa
+  const lf = vi.low_floor_level !== undefined ? vi.low_floor_level
+           : (vi.low_floor ? 1 : 0);
+  const lfClass = lf === 1 ? "full" : lf === 2 ? "partial" : "none";
+  const lfTitle = lf === 1 ? "Niska podłoga" : lf === 2 ? "Niska podłoga (częściowa)" : "Brak niskiej podłogi";
+  const lfStar  = lf === 2 ? `<sup style="font-size:0.55rem;vertical-align:super">★</sup>` : "";
+
+  // Klimatyzacja
+  const acClass = vi.air_conditioner ? "active" : "none";
+  const acTitle = vi.air_conditioner ? "Klimatyzacja" : "Brak klimatyzacji";
+
+  const vehCell = `
+    <div class="dep-veh-cell">
+      <span class="dep-veh-num ${vehNumClass}" title="${esc(vlabel)}">${esc(vehDisplay)}</span>
+      <span class="icon-lf ${lfClass}" title="${lfTitle}">🔽${lfStar}</span>
+      <span class="icon-ac ${acClass}" title="${acTitle}">❄</span>
+    </div>`;
 
   const row = document.createElement("div");
   row.className = "dep-row";
+
   // Gdzie jest pojazd
-  const currentStop = dep.current_stop || "";
+  const currentStop  = dep.current_stop || "";
   const currentClass = dep.realtime && currentStop ? "live" : "";
 
   row.innerHTML = `
     <div class="dep-grid">
-      <div class="dep-sched"><span class="dep-line-badge">${esc(dep.line)}</span> ${esc(schedStr)}</div>
+      <div class="dep-line">${esc(dep.line)}</div>
+      <div class="dep-sched">${esc(schedStr)}</div>
       <div class="dep-direction">${esc(dep.direction)}</div>
       <div class="dep-current ${currentClass}">${esc(currentStop) || "—"}</div>
       <div class="dep-minutes ${minClass}">${minText}</div>
       <div class="dep-real ${realClass}">${realStr}</div>
       <div class="dep-delay ${delayClass}">${delayText}</div>
-      <div class="dep-vehicle ${vehicleClass}">${esc(vid) || "—"}</div>
-      <div class="dep-icons">${iconsHtml}</div>
+      ${vehCell}
     </div>`;
   return row;
 }

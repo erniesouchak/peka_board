@@ -107,10 +107,10 @@ html, body {
   color: var(--dim);
 }
 
-/* col: GODZ.ROZK | KIERUNEK | GDZIE JEST | ZA(min) | GODZ.RZECZ | OPÓŹN | POJAZD | IKONY */
+/* col: LINIA | GODZ.ROZK | KIERUNEK | GDZIE JEST | ZA(min) | GODZ.RZECZ | OPÓŹN | POJAZD+IKONY */
 .dep-grid {
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 64px 68px 76px 68px 72px;
+  grid-template-columns: 52px 76px 1fr 1fr 60px 66px 72px 110px;
   align-items: center;
 }
 
@@ -147,6 +147,38 @@ html, body {
   color: var(--gold);
   text-align: center;
 }
+
+/* Pojazd + ikony w jednej komórce */
+.dep-veh-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-start;
+  padding-left: 4px;
+}
+
+.dep-veh-num {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  min-width: 36px;
+}
+.dep-veh-num.live { color: var(--green); }
+.dep-veh-num.nodata { color: var(--dim); }
+
+.icon-lf {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.icon-lf.full    { color: var(--green); }
+.icon-lf.partial { color: var(--gold);  }
+.icon-lf.none    { opacity: 0.15;       }
+
+.icon-ac {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.icon-ac.active  { color: var(--blue);  }
+.icon-ac.none    { opacity: 0.15;       }
 
 .dep-direction {
   font-size: 0.85rem;

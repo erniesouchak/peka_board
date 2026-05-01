@@ -295,12 +295,13 @@ class GTFSStatic:
                     continue
                 hf_lf = row.get("hf_lf_le", "0").strip()
                 self.vehicles[vid] = {
-                    "low_floor":      hf_lf in ("1", "2"),
-                    "low_entrance":   hf_lf == "2",
+                    "low_floor":       hf_lf in ("1", "2"),
+                    "low_floor_level": int(hf_lf) if hf_lf in ("0","1","2") else 0,
+                    "low_entrance":    hf_lf == "2",
                     "air_conditioner": row.get("air_conditioner", "0").strip() == "1",
-                    "ramp":           row.get("ramp", "0").strip() == "1",
-                    "ticket_machine": row.get("ticket_machine", "0").strip() == "1",
-                    "usb":            row.get("usb_charger", "0").strip() == "1",
+                    "ramp":            row.get("ramp", "0").strip() == "1",
+                    "ticket_machine":  row.get("ticket_machine", "0").strip() == "1",
+                    "usb":             row.get("usb_charger", "0").strip() == "1",
                 }
         except Exception as e:
             log.warning("Nie udało się pobrać vehicle_dictionary: %s", e)
