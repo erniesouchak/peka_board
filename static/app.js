@@ -1,24 +1,20 @@
 // app.js – PEKA Board frontend
 
-const REFRESH_INTERVAL = 60; // sekund
+const REFRESH_INTERVAL = 60;
 let countdown = REFRESH_INTERVAL;
 let countdownTimer = null;
 
 // ── Zegar ─────────────────────────────────────────────────────────────────────
-
-const DAYS_PL = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
-const MONTHS_PL = [
-  "stycznia","lutego","marca","kwietnia","maja","czerwca",
-  "lipca","sierpnia","września","października","listopada","grudnia"
-];
+const DAYS_PL   = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
+const MONTHS_PL = ["stycznia","lutego","marca","kwietnia","maja","czerwca",
+                   "lipca","sierpnia","września","października","listopada","grudnia"];
 
 function updateClock() {
   const now = new Date();
-  const h = String(now.getHours()).padStart(2, "0");
-  const m = String(now.getMinutes()).padStart(2, "0");
-  const s = String(now.getSeconds()).padStart(2, "0");
+  const h = String(now.getHours()).padStart(2,"0");
+  const m = String(now.getMinutes()).padStart(2,"0");
+  const s = String(now.getSeconds()).padStart(2,"0");
   document.getElementById("clock-time").textContent = `${h}:${m}:${s}`;
-
   const day  = DAYS_PL[now.getDay()];
   const date = now.getDate();
   const mon  = MONTHS_PL[now.getMonth()];
@@ -29,8 +25,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── Odświeżanie danych ────────────────────────────────────────────────────────
-
+// ── Odświeżanie ───────────────────────────────────────────────────────────────
 async function fetchDepartures() {
   resetCountdown();
   try {
@@ -42,11 +37,9 @@ async function fetchDepartures() {
     const status = await statusRes.json();
     renderDepartures(deps);
     updateStatusBar(status);
-    document.getElementById("clock-status").textContent =
-      `Odświeżono ${status.time}`;
-  } catch (e) {
+    document.getElementById("clock-status").textContent = `Odświeżono ${status.time}`;
+  } catch(e) {
     document.getElementById("clock-status").textContent = "⚠ Błąd połączenia";
-    console.error("Fetch error:", e);
   }
 }
 
@@ -57,15 +50,11 @@ function resetCountdown() {
     countdown--;
     document.getElementById("sb-refresh").textContent =
       countdown > 0 ? `Odświeżenie za ${countdown}s` : "Odświeżanie…";
-    if (countdown <= 0) {
-      clearInterval(countdownTimer);
-      fetchDepartures();
-    }
+    if (countdown <= 0) { clearInterval(countdownTimer); fetchDepartures(); }
   }, 1000);
 }
 
-// ── Renderowanie odjazdów ─────────────────────────────────────────────────────
-
+// ── Renderowanie tablicy ──────────────────────────────────────────────────────
 function renderDepartures(data) {
   const container = document.getElementById("departures-container");
   container.innerHTML = "";
@@ -79,7 +68,6 @@ function renderDepartures(data) {
     const tile = document.createElement("div");
     tile.className = "tile-bollard";
 
-    // Nagłówek bollardu
     tile.innerHTML = `
       <div class="bollard-header">
         <span class="bollard-label">${esc(group.bollard.label)}</span>
@@ -92,18 +80,26 @@ function renderDepartures(data) {
       tile.innerHTML += `<div class="dep-empty">Brak odjazdów w najbliższym czasie.</div>`;
     } else {
       // Nagłówek kolumn
-      tile.innerHTML += `
-        <div class="dep-header">
+      const hdr = document.createElement("div");
+      hdr.className = "dep-header";
+      hdr.innerHTML = `
+        <div class="dep-grid">
           <span>Linia</span>
           <span>Kierunek</span>
-          <span>Za (min)</span>
-          <span>Godz.</span>
+          <span>Godz.rozk.</span>
+          <span>Za(min)</span>
+          <span>Godz.rzecz.</span>
           <span>Opóźn.</span>
           <span>Pojazd</span>
+          <span>Info</span>
         </div>`;
+      tile.appendChild(hdr);
 
-      for (const dep of group.departures) {
-        tile.appendChild(buildDepRow(dep));
+      // Wiersze — max 3
+      const deps = group.departures.slice(0, 3);
+      for (const dep of deps) {
+        const row = buildDepRow(dep);
+        if (row) tile.appendChild(row);
       }
     }
 
@@ -112,87 +108,87 @@ function renderDepartures(data) {
 }
 
 function buildDepRow(dep) {
-  const row = document.createElement("div");
-  row.className = "dep-row";
+  const min = dep.minutes;
+  if (min < 0) return null;
 
   // Minuty
-  const min = dep.minutes;
   let minText, minClass;
-  if (min < 0) {
-    return row; // kurs już minął – pomiń
-  } else if (dep.on_stop_point) {
-    minText = ">> STOI"; minClass = "onboard";
+  if (dep.on_stop_point) {
+    minText = "STOI"; minClass = "onboard";
   } else if (min === 0) {
-    minText = "wjeżdża"; minClass = "arriving";
+    minText = "<<"; minClass = "arriving";
   } else {
     minText = String(min);
     minClass = dep.realtime ? "realtime" : "scheduled";
   }
 
+  // Godzina rozkładowa
+  const schedStr = dep.scheduled_departure_str || "—";
+
+  // Godzina rzeczywista = teraz + minuty
+  let realStr = "—";
+  if (min >= 0) {
+    const realTime = new Date(Date.now() + min * 60000);
+    realStr = String(realTime.getHours()).padStart(2,"0") + ":" +
+              String(realTime.getMinutes()).padStart(2,"0");
+  }
+  const realClass = dep.realtime ? "realtime" : "";
+
   // Opóźnienie
   let delayText = "", delayClass = "nodata";
   if (dep.delay_seconds !== null && dep.delay_seconds !== undefined) {
     const dm = Math.round(dep.delay_seconds / 60);
-    if (dm === 0)      { delayText = "punktualnie"; delayClass = "ontime"; }
-    else if (dm > 0)   { delayText = `+${dm} min`;  delayClass = "late";  }
-    else               { delayText = `${dm} min`;   delayClass = "early"; }
+    if (dm === 0)    { delayText = "punk.";    delayClass = "ontime"; }
+    else if (dm > 0) { delayText = `+${dm}'`;  delayClass = "late";   }
+    else             { delayText = `${dm}'`;   delayClass = "early";  }
   }
 
   // Pojazd
-  const vi = dep.vehicle_info || {};
   const vid = dep.vehicle_id || "";
+  const isLive = dep.realtime && vid;
+  const vehicleClass = isLive ? "live" : "";
 
+  // Ikony
+  const vi = dep.vehicle_info || {};
+  const icons = [
+    { key: "low_floor",       icon: "🔽", title: "Niska podłoga" },
+    { key: "air_conditioner", icon: "❄",  title: "Klimatyzacja"  },
+    { key: "ticket_machine",  icon: "🎟",  title: "Biletomat"    },
+  ];
+
+  const iconsHtml = icons.map(b =>
+    `<span class="icon-badge ${vi[b.key] ? 'active' : ''}" title="${b.title}">${b.icon}</span>`
+  ).join("");
+
+  const row = document.createElement("div");
+  row.className = "dep-row";
   row.innerHTML = `
-    <div class="dep-line">${esc(dep.line)}</div>
-    <div class="dep-direction">${esc(dep.direction)}</div>
-    <div class="dep-minutes ${minClass}">${minText}</div>
-    <div class="dep-time">${esc(dep.scheduled_departure_str)}</div>
-    <div class="dep-delay ${delayClass}">${delayText}</div>
-    <div class="dep-vehicle">${buildVehicleBadges(vid, vi)}</div>
-  `;
+    <div class="dep-grid">
+      <div class="dep-line">${esc(dep.line)}</div>
+      <div class="dep-direction">${esc(dep.direction)}</div>
+      <div class="dep-sched">${esc(schedStr)}</div>
+      <div class="dep-minutes ${minClass}">${minText}</div>
+      <div class="dep-real ${realClass}">${realStr}</div>
+      <div class="dep-delay ${delayClass}">${delayText}</div>
+      <div class="dep-vehicle ${vehicleClass}">${esc(vid) || "—"}</div>
+      <div class="dep-icons">${iconsHtml}</div>
+    </div>`;
   return row;
 }
 
-function buildVehicleBadges(vid, vi) {
-  if (!vid && Object.keys(vi).length === 0) return `<span class="veh-badge">—</span>`;
-
-  let html = vid ? `<span class="veh-badge active" title="Numer boczny">${esc(vid)}</span>` : "";
-
-  const badges = [
-    { key: "low_floor",       icon: "🔽", label: "Niska podłoga" },
-    { key: "air_conditioner", icon: "❄",  label: "Klimatyzacja"  },
-    { key: "ramp",            icon: "♿",  label: "Rampa"         },
-    { key: "ticket_machine",  icon: "🎟",  label: "Biletomat"    },
-  ];
-
-  for (const b of badges) {
-    if (vi[b.key]) {
-      html += `<span class="veh-badge active" title="${b.label}">${b.icon}</span>`;
-    }
-  }
-  return html || `<span class="veh-badge">—</span>`;
-}
-
 // ── Status bar ────────────────────────────────────────────────────────────────
-
 function updateStatusBar(status) {
   document.getElementById("sb-gtfs").textContent =
-    `GTFS: ważny do ${status.gtfs_valid_until}`;
+    `GTFS: ${status.gtfs_valid_from || "—"} – ${status.gtfs_valid_until}`;
   document.getElementById("sb-rt").textContent =
-    status.rt_error
-      ? `RT: ⚠ ${status.rt_error}`
-      : `RT: ${status.rt_last_update}`;
+    status.rt_error ? `RT: ⚠ ${status.rt_error}` : `RT: ${status.rt_last_update}`;
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
-
 function esc(str) {
   return String(str ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;");
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
-// ── Start ─────────────────────────────────────────────────────────────────────
 fetchDepartures();

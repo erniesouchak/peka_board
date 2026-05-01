@@ -27,18 +27,15 @@ html, body {
   overflow: hidden;
 }
 
-/* ── Siatka tablicy ───────────────────────────────────────────────────────── */
 .board {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  grid-template-rows: 1fr;
+  grid-template-columns: 260px 1fr;
   gap: 8px;
-  padding: 8px 8px 36px 8px;  /* dolne miejsce na statusbar */
+  padding: 8px 8px 36px 8px;
   height: 100vh;
   width: 100vw;
 }
 
-/* ── Kafelek: Zegar ───────────────────────────────────────────────────────── */
 .tile-clock {
   background: var(--bg2);
   border: 1px solid var(--sep);
@@ -53,26 +50,25 @@ html, body {
 
 .clock-time {
   font-family: var(--font-mono);
-  font-size: 3.2rem;
+  font-size: 3rem;
   font-weight: bold;
   color: var(--gold);
   letter-spacing: 2px;
 }
 
 .clock-date {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--text);
   text-align: center;
 }
 
 .clock-status {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--dim);
   text-align: center;
   margin-top: 8px;
 }
 
-/* ── Kontener odjazdów ────────────────────────────────────────────────────── */
 #departures-container {
   overflow-y: auto;
   scrollbar-width: thin;
@@ -82,7 +78,6 @@ html, body {
   gap: 6px;
 }
 
-/* ── Kafelek: Bollard ─────────────────────────────────────────────────────── */
 .tile-bollard {
   background: var(--bg2);
   border: 1px solid var(--sep);
@@ -92,7 +87,7 @@ html, body {
 
 .bollard-header {
   background: var(--bg4);
-  padding: 7px 14px;
+  padding: 6px 14px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -100,7 +95,7 @@ html, body {
 }
 
 .bollard-label {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: bold;
   color: var(--blue);
   flex: 1;
@@ -108,34 +103,37 @@ html, body {
 
 .bollard-symbol {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--dim);
 }
 
-/* ── Nagłówek kolumn ──────────────────────────────────────────────────────── */
-.dep-header {
+/* col: LINIA | KIERUNEK | GODZ.ROZK | ZA(min) | GODZ.RZECZ | OPÓŹN | POJAZD | IKONY */
+.dep-grid {
   display: grid;
-  grid-template-columns: 72px 1fr 80px 70px 90px 70px;
-  background: var(--sep);
-  padding: 4px 6px;
-  font-size: 0.7rem;
+  grid-template-columns: 60px 1fr 82px 68px 72px 80px 68px 76px;
+  align-items: center;
+}
+
+.dep-header { background: var(--sep); padding: 4px 0; }
+
+.dep-header .dep-grid span {
+  font-size: 0.62rem;
   font-weight: bold;
   color: var(--dim);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  text-align: center;
+  padding: 0 3px;
 }
 
-.dep-header span { text-align: center; }
-.dep-header span:nth-child(2) { text-align: left; padding-left: 6px; }
+.dep-header .dep-grid span:nth-child(2) {
+  text-align: left;
+  padding-left: 8px;
+}
 
-/* ── Wiersz odjazdu ───────────────────────────────────────────────────────── */
 .dep-row {
-  display: grid;
-  grid-template-columns: 72px 1fr 80px 70px 90px 70px;
-  padding: 7px 6px;
-  align-items: center;
   border-bottom: 1px solid var(--sep);
-  transition: background 0.15s;
+  padding: 6px 0;
 }
 
 .dep-row:last-child { border-bottom: none; }
@@ -144,74 +142,90 @@ html, body {
 
 .dep-line {
   font-family: var(--font-mono);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: bold;
   color: var(--gold);
   text-align: center;
 }
 
 .dep-direction {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text);
-  padding-left: 6px;
+  padding-left: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Godzina rozkładowa — wyraźna, jasna */
+.dep-sched {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: #d0e4ff;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+/* Za ile minut */
 .dep-minutes {
   font-family: var(--font-mono);
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: bold;
   text-align: center;
 }
-
 .dep-minutes.realtime  { color: var(--green); }
-.dep-minutes.scheduled { color: var(--text);  }
+.dep-minutes.scheduled { color: #6a7a9a;      }
 .dep-minutes.arriving  { color: var(--gold);  }
 .dep-minutes.onboard   { color: var(--red);   }
 
-.dep-time {
+/* Godzina rzeczywista */
+.dep-real {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   color: var(--dim);
   text-align: center;
 }
+.dep-real.realtime { color: var(--green); }
 
+/* Opóźnienie */
 .dep-delay {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   text-align: center;
 }
-.dep-delay.late     { color: var(--late);  }
-.dep-delay.early    { color: var(--early); }
-.dep-delay.ontime   { color: var(--dim);   }
-.dep-delay.nodata   { color: var(--dim);   }
+.dep-delay.late   { color: var(--late);  }
+.dep-delay.early  { color: var(--early); }
+.dep-delay.ontime { color: var(--dim);   }
+.dep-delay.nodata { color: transparent;  }
 
-/* ── Ikony pojazdu ────────────────────────────────────────────────────────── */
+/* Pojazd */
 .dep-vehicle {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  justify-content: center;
-  font-size: 0.72rem;
-}
-
-.veh-badge {
-  background: var(--sep);
-  border-radius: 4px;
-  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
   color: var(--dim);
+  text-align: center;
+}
+.dep-vehicle.live { color: var(--green); }
+
+/* Ikony */
+.dep-icons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
 }
 
-.veh-badge.active { color: var(--green); background: #0d2a1a; }
+.icon-badge {
+  font-size: 0.9rem;
+  opacity: 0.15;
+}
+.icon-badge.active { opacity: 1; }
 
-/* ── Brak odjazdów ────────────────────────────────────────────────────────── */
 .dep-empty {
-  padding: 16px;
+  padding: 14px;
   text-align: center;
   color: var(--dim);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 /* ── Pasek statusu ────────────────────────────────────────────────────────── */
@@ -225,207 +239,159 @@ html, body {
   align-items: center;
   gap: 20px;
   padding: 0 14px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--dim);
   z-index: 100;
 }
 
 .statusbar a, .statusbar button {
   background: none; border: none;
-  color: var(--gold);
-  cursor: pointer;
-  font-size: 0.72rem;
-  text-decoration: none;
-  padding: 0;
-  margin-left: auto;
+  color: var(--gold); cursor: pointer;
+  font-size: 0.68rem; text-decoration: none; padding: 0;
 }
-
 .statusbar .btn-refresh { margin-left: auto; }
 .statusbar .btn-config  { margin-left: 10px; }
 
 /* ── Overlay setup ────────────────────────────────────────────────────────── */
 .overlay-setup {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(8,14,26,0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   z-index: 200;
 }
 
 .setup-box {
-  background: var(--bg2);
-  border: 1px solid var(--sep);
-  border-radius: 14px;
-  padding: 40px 48px;
-  text-align: center;
-  max-width: 420px;
+  background: var(--bg2); border: 1px solid var(--sep);
+  border-radius: 14px; padding: 40px 48px;
+  text-align: center; max-width: 420px;
 }
 
-.setup-box h2 { font-size: 1.5rem; color: var(--gold); margin-bottom: 12px; }
+.setup-box h2 { font-size: 1.4rem; color: var(--gold); margin-bottom: 12px; }
 .setup-box p  { color: var(--dim); margin-bottom: 24px; }
 
 .btn-big {
-  display: inline-block;
-  background: #1a3a6a;
-  color: var(--text);
-  border: none;
-  border-radius: 8px;
-  padding: 12px 28px;
-  font-size: 1rem;
-  cursor: pointer;
-  text-decoration: none;
+  display: inline-block; background: #1a3a6a; color: var(--text);
+  border: none; border-radius: 8px; padding: 12px 28px;
+  font-size: 1rem; cursor: pointer; text-decoration: none;
 }
-
 .btn-big:hover { background: #2a4a8a; }
 
-/* ── Konfiguracja – layout ────────────────────────────────────────────────── */
-body.config-body {
-  overflow: auto;
-  height: auto;
-}
+/* ── Konfiguracja ─────────────────────────────────────────────────────────── */
+body.config-body { overflow: auto; height: auto; }
 
 .config-wrap {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 16px;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  max-width: 1100px; margin: 0 auto;
+  padding: 16px; min-height: 100vh;
+  display: flex; flex-direction: column; gap: 12px;
 }
 
 .config-header {
-  background: var(--bg2);
-  border: 1px solid var(--sep);
-  border-radius: 10px;
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  background: var(--bg2); border: 1px solid var(--sep);
+  border-radius: 10px; padding: 12px 20px;
+  display: flex; align-items: center; gap: 14px;
 }
 
 .cfg-logo  { font-size: 1rem; font-weight: bold; color: var(--gold); }
 .cfg-title { font-size: 1.1rem; color: var(--text); flex: 1; }
-
-.btn-back {
-  color: var(--dim);
-  text-decoration: none;
-  font-size: 0.9rem;
-}
+.btn-back  { color: var(--dim); text-decoration: none; font-size: 0.9rem; }
 .btn-back:hover { color: var(--text); }
 
 .config-main {
-  display: grid;
-  grid-template-columns: 1fr 32px 1fr;
-  gap: 0;
-  background: var(--bg2);
-  border: 1px solid var(--sep);
-  border-radius: 10px;
-  padding: 16px;
-  gap: 12px;
-  flex: 1;
+  display: grid; grid-template-columns: 1fr 32px 1fr;
+  gap: 12px; background: var(--bg2); border: 1px solid var(--sep);
+  border-radius: 10px; padding: 16px; flex: 1;
 }
 
 .cfg-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  color: var(--dim);
+  display: flex; align-items: center;
+  justify-content: center; font-size: 1.5rem; color: var(--dim);
 }
 
-.cfg-left, .cfg-right {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.cfg-left, .cfg-right { display: flex; flex-direction: column; gap: 6px; }
 
 .cfg-section-title {
-  font-size: 0.78rem;
-  font-weight: bold;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  font-size: 0.75rem; font-weight: bold; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  display: flex; align-items: center; justify-content: space-between;
 }
 
-.cfg-count {
-  font-size: 0.85rem;
-  color: var(--gold);
-  font-weight: bold;
-}
+.cfg-count { font-size: 0.85rem; color: var(--gold); font-weight: bold; }
 
-.cfg-search-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+.cfg-search-row { display: flex; gap: 8px; align-items: center; }
 
 .cfg-search-row input {
-  flex: 1;
-  background: var(--bg3);
-  border: 1px solid var(--sep);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: 0.95rem;
-  padding: 7px 10px;
-  outline: none;
+  flex: 1; background: var(--bg3); border: 1px solid var(--sep);
+  border-radius: 6px; color: var(--text); font-size: 0.95rem;
+  padding: 7px 10px; outline: none;
 }
-
 .cfg-search-row input:focus { border-color: var(--gold); }
 
 .cfg-list-wrap {
-  background: var(--bg3);
-  border: 1px solid var(--sep);
-  border-radius: 6px;
-  height: 160px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--sep) var(--bg3);
+  background: var(--bg3); border: 1px solid var(--sep);
+  border-radius: 6px; height: 150px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--sep) var(--bg3);
 }
 
-.cfg-list-selected-wrap { height: 260px; }
+.cfg-list-selected-wrap { height: 240px; }
 
-.cfg-list {
-  list-style: none;
-}
+.cfg-list { list-style: none; }
 
 .cfg-list li {
-  padding: 7px 10px;
-  font-size: 0.88rem;
-  cursor: pointer;
+  padding: 6px 10px; font-size: 0.85rem; cursor: pointer;
   border-bottom: 1px solid var(--sep);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .cfg-list li:hover  { background: var(--sep); }
 .cfg-list li.active { background: #1a3a6a; color: var(--text); }
 .cfg-list li.cfg-empty { color: var(--dim); cursor: default; }
 
+/* Bollard z tooltipem */
+.boll-item {
+  position: relative; cursor: pointer;
+  padding: 6px 10px; font-size: 0.85rem;
+  border-bottom: 1px solid var(--sep);
+}
+.boll-item:hover { background: var(--sep); }
+.boll-item.active { background: #1a3a6a; }
+
+.boll-tooltip {
+  display: none;
+  position: absolute; left: 0; top: 100%;
+  z-index: 50; background: #0d1830;
+  border: 1px solid var(--blue); border-radius: 6px;
+  padding: 8px 12px; font-size: 0.78rem; color: var(--text);
+  white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  min-width: 240px;
+}
+
+.boll-item:hover .boll-tooltip { display: block; }
+
+.boll-lines-title {
+  font-size: 0.68rem; color: var(--dim);
+  margin-bottom: 4px; text-transform: uppercase;
+}
+
+.boll-line-badge {
+  display: inline-block; background: var(--sep);
+  border-radius: 3px; padding: 1px 6px; margin: 2px;
+  font-family: var(--font-mono); font-size: 0.8rem;
+  color: var(--gold);
+}
+
 .cfg-move-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
 }
 
 .btn-add, .btn-move, .btn-remove, .btn-save {
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  padding: 8px 12px;
+  border: none; border-radius: 6px;
+  cursor: pointer; font-size: 0.9rem; padding: 7px 12px;
 }
-
-.btn-add   { background: #1a3a6a; color: var(--text);  }
-.btn-move  { background: var(--sep); color: var(--dim); }
-.btn-remove{ background: #2a1010; color: #e88; }
-.btn-save  { background: #1a4a1a; color: var(--green); font-size: 1rem; padding: 10px 24px; }
+.btn-add    { background: #1a3a6a; color: var(--text); }
+.btn-move   { background: var(--sep); color: var(--dim); }
+.btn-remove { background: #2a1010; color: #e88; }
+.btn-save   { background: #1a4a1a; color: var(--green);
+              font-size: 1rem; padding: 10px 24px; }
 
 .btn-add:hover    { background: #2a4a8a; }
 .btn-move:hover   { background: #243050; color: var(--text); }
@@ -433,18 +399,10 @@ body.config-body {
 .btn-save:hover   { background: #2a5a2a; }
 
 .cfg-footer {
-  background: var(--bg2);
-  border: 1px solid var(--sep);
-  border-radius: 10px;
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  background: var(--bg2); border: 1px solid var(--sep);
+  border-radius: 10px; padding: 12px 20px;
+  display: flex; align-items: center; gap: 16px;
 }
 
-.cfg-msg {
-  font-size: 0.85rem;
-  color: var(--red);
-}
-
+.cfg-msg { font-size: 0.85rem; color: var(--red); }
 .spinner.hidden { display: none; }

@@ -112,12 +112,41 @@ async function onStopClick(idx) {
   try {
     const r = await fetch(`/api/stops/bollards?stop_name=${encodeURIComponent(selectedStop.name)}`);
     bollardResults = await r.json();
-    renderList("list-bollards",
-      bollardResults.map(b => `${b.symbol}  →  ${b.direction}  [${b.lines.join(", ")}]`),
-      onBollardClick);
+    renderBollards(bollardResults);
   } finally {
     document.getElementById("search-spinner").classList.add("hidden");
   }
+}
+
+function renderBollards(bollards) {
+  const ul = document.getElementById("list-bollards");
+  ul.innerHTML = "";
+  if (!bollards.length) {
+    ul.innerHTML = "<li class='cfg-empty'>—</li>"; return;
+  }
+  bollards.forEach((b, i) => {
+    const li = document.createElement("li");
+    li.className = "boll-item";
+
+    const linesHtml = b.lines && b.lines.length
+      ? b.lines.map(l => `<span class="boll-line-badge">${l}</span>`).join("")
+      : "<span style='color:var(--dim)'>brak danych</span>";
+
+    li.innerHTML = `
+      <span>${b.symbol} &nbsp;→&nbsp; ${b.direction}</span>
+      <div class="boll-tooltip">
+        <div class="boll-lines-title">Linie przez ten słupek:</div>
+        ${linesHtml}
+      </div>`;
+
+    li.onclick = () => {
+      selectedBollard = bollards[i];
+      document.querySelectorAll("#list-bollards .boll-item")
+        .forEach(el => el.classList.remove("active"));
+      li.classList.add("active");
+    };
+    ul.appendChild(li);
+  });
 }
 
 function onBollardClick(idx) {
