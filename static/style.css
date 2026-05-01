@@ -110,7 +110,7 @@ html, body {
 /* col: LINIA | GODZ.ROZK | KIERUNEK | GDZIE JEST | ZA(min) | GODZ.RZECZ | OPÓŹN | POJAZD+IKONY */
 .dep-grid {
   display: grid;
-  grid-template-columns: 48px 72px minmax(0,1fr) minmax(0,1fr) 74px 64px 62px 130px;
+  grid-template-columns: 48px 72px minmax(0,1fr) minmax(0,1fr) 90px 68px 62px 130px;
   align-items: center;
   width: 100%;
 }
@@ -225,10 +225,11 @@ html, body {
 /* Za ile minut */
 .dep-minutes {
   font-family: var(--font-mono);
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   font-weight: bold;
   text-align: center;
   white-space: nowrap;
+  padding: 0 4px;
 }
 .dep-minutes.realtime  { color: var(--green); }
 .dep-minutes.scheduled { color: #6a7a9a;      }
