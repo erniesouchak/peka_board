@@ -88,7 +88,7 @@ function renderDepartures(data) {
           <span>Godz.rozk.</span>
           <span style="text-align:left;padding-left:8px">Kierunek</span>
           <span style="text-align:left;padding-left:6px">Gdzie jest</span>
-          <span>Za(min)</span>
+          <span>Za</span>
           <span>Godz.rzecz.</span>
           <span>Opóźn.</span>
           <span>Pojazd</span>
@@ -116,14 +116,23 @@ function buildDepRow(dep) {
   if (dep.on_stop_point) {
     minText = "STOI"; minClass = "onboard";
   } else if (min === 0) {
-    minText = "<<"; minClass = "arriving";
+    minText = "<1 min"; minClass = "arriving";
   } else {
-    minText = String(min);
+    minText = `${min} min`;
     minClass = dep.realtime ? "realtime" : "scheduled";
   }
 
-  // Godzina rozkładowa
-  const schedStr = dep.scheduled_departure_str || "—";
+  // Godzina rozkładowa — obsługa >24h (nocne)
+  const schedRaw = dep.scheduled_departure_str || "—";
+  let schedStr = schedRaw;
+  if (schedRaw !== "—") {
+    const h = parseInt(schedRaw.split(":")[0], 10);
+    if (h >= 24) {
+      const hFixed = String(h - 24).padStart(2, "0");
+      const m = schedRaw.split(":")[1];
+      schedStr = `${hFixed}:${m}`;
+    }
+  }
 
   // Godzina rzeczywista = teraz + minuty
   let realStr = "—";
@@ -157,10 +166,6 @@ function buildDepRow(dep) {
            : (vi.low_floor ? 1 : 0);
   const lfClass = lf === 1 ? "full" : lf === 2 ? "partial" : "none";
   const lfTitle = lf === 1 ? "Niska podłoga" : lf === 2 ? "Niska podłoga (częściowa)" : "Brak niskiej podłogi";
-  // Dla stanu częściowego dodajemy gwiazdkę
-  const lfStar = lf === 2
-    ? `<sup style="font-size:0.5rem;vertical-align:super;margin-left:1px">★</sup>`
-    : "";
 
   // Klimatyzacja
   const acClass = vi.air_conditioner ? "active" : "none";
@@ -170,7 +175,7 @@ function buildDepRow(dep) {
     <div class="dep-veh-cell">
       <span class="dep-veh-num ${vehNumClass}">${esc(vehDisplay)}</span>
       <span class="dep-veh-label">${esc(vlabel)}</span>
-      <i class="fa-solid fa-wheelchair icon-wheelchair ${lfClass}" title="${lfTitle}"></i>${lfStar}
+      <i class="fa-solid fa-wheelchair icon-wheelchair ${lfClass}" title="${lfTitle}"></i>
       <i class="fa-solid fa-snowflake icon-ac ${acClass}" title="${acTitle}"></i>
     </div>`;
 
