@@ -60,19 +60,20 @@ class GTFSRealtime:
         return feed
 
     def _fetch_vehicle_positions(self):
-        """Buduj mapowanie trip_id → (vehicle_label, vehicle_id)."""
+        """Buduj mapowanie trip_id → (vehicle_label, vehicle_id, current_stop_seq)."""
         feed = self._fetch_pb(VEHICLE_POSITIONS_URL)
-        trip_vehicles: dict[str, tuple[str, str]] = {}
+        trip_vehicles: dict[str, tuple[str, str, int]] = {}
 
         for entity in feed.entity:
             if not entity.HasField("vehicle"):
                 continue
             vp      = entity.vehicle
             trip_id = vp.trip.trip_id
-            label   = vp.vehicle.label   # np. "610/2" (linia/brygada)
-            vid     = vp.vehicle.id      # np. "6057" (numer taborowy)
+            label   = vp.vehicle.label
+            vid     = vp.vehicle.id
+            cur_seq = vp.current_stop_sequence  # gdzie teraz jest pojazd
             if trip_id and label:
-                trip_vehicles[trip_id] = (label, vid)
+                trip_vehicles[trip_id] = (label, vid, cur_seq)
 
         self._trip_vehicles = trip_vehicles
         log.debug("Pojazdów w RT: %d", len(trip_vehicles))
@@ -122,15 +123,23 @@ class GTFSRealtime:
         self.refresh_if_stale()
 
         for dep in departures:
-            trip_id = dep.get("trip_id", "")
+            trip_id  = dep.get("trip_id", "")
+            stop_seq = dep.get("seq", 0)  # stop_sequence naszego przystanku
 
             vehicle = self._trip_vehicles.get(trip_id)
             if vehicle:
-                label, vid = vehicle
-                dep["vehicle_label"] = label   # "610/2" — do wyświetlania
-                dep["vehicle_id"]    = vid      # "6057" — do słownika cech
+                label, vid, cur_seq = vehicle
+                dep["vehicle_label"] = label
+                dep["vehicle_id"]    = vid
                 dep["realtime"]      = True
-                dep["delay_seconds"] = self._trip_delays.get(trip_id)
+
+                # Opóźnienie tylko gdy pojazd już dotarł do naszego przystanku
+                # lub jest w jego pobliżu (cur_seq >= stop_seq)
+                delay = self._trip_delays.get(trip_id)
+                if delay is not None and cur_seq >= stop_seq:
+                    dep["delay_seconds"] = delay
+                else:
+                    dep["delay_seconds"] = None  # pojazd jeszcze przed przystankiem
             else:
                 dep["vehicle_label"] = ""
                 dep["vehicle_id"]    = ""

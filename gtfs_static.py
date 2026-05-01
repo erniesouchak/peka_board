@@ -367,10 +367,11 @@ class GTFSStatic:
                 "line":                   line,
                 "direction":              trip["headsign"],
                 "scheduled_departure":    dep,
-                "scheduled_departure_str": dep[:5],   # HH:MM
-                "vehicle_id":             "",          # uzupełni GTFS-RT
-                "vehicle_info":           {},          # uzupełni GTFS-RT
-                "delay_seconds":          None,        # uzupełni GTFS-RT
+                "scheduled_departure_str": dep[:5],
+                "seq":                    st["seq"],   # stop_sequence → do filtrowania RT
+                "vehicle_id":             "",
+                "vehicle_info":           {},
+                "delay_seconds":          None,
                 "realtime":               False,
             })
 
