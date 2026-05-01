@@ -362,35 +362,55 @@ class GTFSStatic:
             if not trip:
                 continue
 
-            if not self.is_service_active(trip["service_id"], today):
+            # Kursy nocne (overnight=True) startowały wczoraj
+            is_overnight = st.get("overnight", False)
+            check_date = today - timedelta(days=1) if is_overnight else today
+
+            if not self.is_service_active(trip["service_id"], check_date):
                 continue
 
             # GTFS pozwala na godziny >24:00 dla kursów po północy
-            dep_norm, dep_date = self._normalize_time(dep, today)
-            # Porównuj tylko jeśli kurs jest z dzisiaj lub następnego dnia
+            # Dla overnight używamy wczoraj jako base_date
+            dep_norm, dep_date = self._normalize_time(dep, check_date)
+
+            # Odrzuć kursy które już minęły
             if dep_date == today and dep_norm < now_str:
                 continue
             if dep_date < today:
                 continue
 
             line = self.routes.get(trip["route_id"], "?")
+            # Dla overnight oblicz rzeczywistą godzinę (np. 26:33 → 02:33)
+            sched_display = dep_norm[:5] if is_overnight else dep[:5]
             results.append({
                 "trip_id":                st["trip_id"],
                 "line":                   line,
                 "direction":              trip["headsign"],
                 "scheduled_departure":    dep,
-                "scheduled_departure_str": dep[:5],
-                "seq":                    st["seq"],   # stop_sequence → do filtrowania RT
+                "scheduled_departure_str": sched_display,
+                "seq":                    st["seq"],
                 "vehicle_id":             "",
                 "vehicle_info":           {},
                 "delay_seconds":          None,
                 "realtime":               False,
+                "overnight":              is_overnight,
             })
 
-            if len(results) >= limit:
+            if len(results) >= limit * 2:  # zbierz więcej przed sortowaniem
                 break
 
-        return results
+        # Sortuj po rzeczywistej godzinie odjazdu (dep_norm to HH:MM:SS już po północy)
+        def sort_key(r):
+            dep = r["scheduled_departure"]
+            h = int(dep.split(":")[0])
+            m = int(dep.split(":")[1])
+            # Normalizuj: godziny >= 24 to następna doba
+            return h * 60 + m
+
+        results.sort(key=sort_key)
+
+        # Teraz odetnij do limitu
+        return results[:limit]
 
     def _merge_overnight_from_prev(self):
         """
