@@ -143,8 +143,8 @@ function buildDepRow(dep) {
     else             { delayText = `${dm}'`;   delayClass = "early";  }
   }
 
-  // Pojazd
-  const vid = dep.vehicle_id || "";
+  // Pojazd — pokazuj linia/brygada, vehicle_id używaj do cech
+  const vid = dep.vehicle_label || dep.vehicle_id || "";
   const isLive = dep.realtime && vid;
   const vehicleClass = isLive ? "live" : "";
 
