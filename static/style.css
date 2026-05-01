@@ -152,33 +152,38 @@ html, body {
 .dep-veh-cell {
   display: flex;
   align-items: center;
-  gap: 5px;
-  justify-content: flex-start;
+  gap: 6px;
   padding-left: 4px;
 }
 
 .dep-veh-num {
   font-family: var(--font-mono);
-  font-size: 0.82rem;
-  min-width: 36px;
+  font-size: 0.78rem;
+  min-width: 34px;
 }
-.dep-veh-num.live { color: var(--green); }
-.dep-veh-num.nodata { color: var(--dim); }
+.dep-veh-num.live   { color: var(--green); }
+.dep-veh-num.nodata { color: var(--dim);   }
 
-.icon-lf {
-  font-size: 0.85rem;
-  line-height: 1;
+.dep-veh-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dim);
 }
-.icon-lf.full    { color: var(--green); }
-.icon-lf.partial { color: var(--gold);  }
-.icon-lf.none    { opacity: 0.15;       }
 
+/* Ikona wózka — 3 stany */
+.icon-wheelchair {
+  font-size: 0.9rem;
+}
+.icon-wheelchair.full    { color: var(--green); }
+.icon-wheelchair.partial { color: var(--gold);  }
+.icon-wheelchair.none    { color: var(--dim); opacity: 0.25; }
+
+/* Ikona klimatyzacji */
 .icon-ac {
-  font-size: 0.85rem;
-  line-height: 1;
+  font-size: 0.9rem;
 }
-.icon-ac.active  { color: var(--blue);  }
-.icon-ac.none    { opacity: 0.15;       }
+.icon-ac.active { color: #7dd3fc; }  /* jasnoniebieski */
+.icon-ac.none   { color: var(--dim); opacity: 0.25; }
 
 .dep-direction {
   font-size: 0.85rem;

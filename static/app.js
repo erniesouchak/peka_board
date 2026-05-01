@@ -143,21 +143,24 @@ function buildDepRow(dep) {
     else             { delayText = `${dm}'`;   delayClass = "early";  }
   }
 
-  // Pojazd — numer boczny + ikony
-  const vid    = dep.vehicle_id    || "";   // numer boczny (6060)
-  const vlabel = dep.vehicle_label || "";   // linia/brygada (610/2)
+  // Pojazd — numer boczny + brygada + ikony FA
+  const vid    = dep.vehicle_id    || "";
+  const vlabel = dep.vehicle_label || "";
   const isLive = dep.realtime && vid;
   const vehNumClass = isLive ? "live" : "nodata";
   const vehDisplay  = vid || "—";
 
   const vi = dep.vehicle_info || {};
 
-  // Niska podłoga: low_floor_level: 0=brak, 1=pełna, 2=częściowa
+  // Niska podłoga: 0=brak, 1=pełna, 2=częściowa
   const lf = vi.low_floor_level !== undefined ? vi.low_floor_level
            : (vi.low_floor ? 1 : 0);
   const lfClass = lf === 1 ? "full" : lf === 2 ? "partial" : "none";
   const lfTitle = lf === 1 ? "Niska podłoga" : lf === 2 ? "Niska podłoga (częściowa)" : "Brak niskiej podłogi";
-  const lfStar  = lf === 2 ? `<sup style="font-size:0.55rem;vertical-align:super">★</sup>` : "";
+  // Dla stanu częściowego dodajemy gwiazdkę
+  const lfStar = lf === 2
+    ? `<sup style="font-size:0.5rem;vertical-align:super;margin-left:1px">★</sup>`
+    : "";
 
   // Klimatyzacja
   const acClass = vi.air_conditioner ? "active" : "none";
@@ -165,9 +168,10 @@ function buildDepRow(dep) {
 
   const vehCell = `
     <div class="dep-veh-cell">
-      <span class="dep-veh-num ${vehNumClass}" title="${esc(vlabel)}">${esc(vehDisplay)}</span>
-      <span class="icon-lf ${lfClass}" title="${lfTitle}">🔽${lfStar}</span>
-      <span class="icon-ac ${acClass}" title="${acTitle}">❄</span>
+      <span class="dep-veh-num ${vehNumClass}">${esc(vehDisplay)}</span>
+      <span class="dep-veh-label">${esc(vlabel)}</span>
+      <i class="fa-solid fa-wheelchair icon-wheelchair ${lfClass}" title="${lfTitle}"></i>${lfStar}
+      <i class="fa-solid fa-snowflake icon-ac ${acClass}" title="${acTitle}"></i>
     </div>`;
 
   const row = document.createElement("div");
