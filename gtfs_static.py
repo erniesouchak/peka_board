@@ -57,6 +57,10 @@ class GTFSStatic:
         # trip_id → {seq → stop_name}  (do wyświetlania "gdzie jest pojazd")
         self.trip_stop_names: dict[str, dict[int, str]] = {}
 
+        # Kalendarz z poprzedniej paczki (dla kursów overnight)
+        self.prev_calendar: dict[str, dict] = {}
+        self.prev_calendar_dates: dict[str, dict[str, int]] = {}
+
         self._feed_end_date: Optional[date] = None
         self._feed_start_date: Optional[date] = None
         self._loaded = False
@@ -308,6 +312,23 @@ class GTFSStatic:
 
     # ── Zapytania ─────────────────────────────────────────────────────────────
 
+    def is_service_active_prev(self, service_id: str, for_date: Optional[date] = None) -> bool:
+        """Sprawdź aktywność kursu w poprzedniej paczce GTFS."""
+        d   = for_date or date.today()
+        dow = d.weekday()
+        date_str = d.strftime("%Y%m%d")
+
+        exc = self.prev_calendar_dates.get(service_id, {}).get(date_str)
+        if exc == 1:
+            return True
+        if exc == 2:
+            return False
+
+        cal = self.prev_calendar.get(service_id)
+        if not cal:
+            return False
+        return cal["start"] <= d <= cal["end"] and dow in cal["days"]
+
     def is_service_active(self, service_id: str, for_date: Optional[date] = None) -> bool:
         """Czy dany service_id jest aktywny w podanym dniu?"""
         d = for_date or date.today()
@@ -366,7 +387,12 @@ class GTFSStatic:
             is_overnight = st.get("overnight", False)
             check_date = today - timedelta(days=1) if is_overnight else today
 
-            if not self.is_service_active(trip["service_id"], check_date):
+            if is_overnight:
+                active = self.is_service_active_prev(trip["service_id"], check_date)
+            else:
+                active = self.is_service_active(trip["service_id"], check_date)
+
+            if not active:
                 continue
 
             # GTFS pozwala na godziny >24:00 dla kursów po północy
@@ -393,7 +419,7 @@ class GTFSStatic:
                 "vehicle_info":           {},
                 "delay_seconds":          None,
                 "realtime":               False,
-                "overnight":              is_overnight,
+                "overnight":              is_overnight,  # True/False dla wszystkich
             })
 
             if len(results) >= limit * 2:  # zbierz więcej przed sortowaniem
@@ -465,6 +491,9 @@ class GTFSStatic:
 
             # Wczoraj = dzień dla którego szukamy nocnych
             yesterday = date.today() - timedelta(days=1)
+
+            self.prev_calendar       = prev_calendar
+            self.prev_calendar_dates = prev_cal_dates
 
             added = 0
             for row in self._csv_reader(zf, "stop_times.txt"):
