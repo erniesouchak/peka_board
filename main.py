@@ -170,6 +170,15 @@ async def api_departures():
     if not config:
         return []
 
+    # Dynamiczna liczba wierszy zależnie od liczby bollardów
+    n = len(config)
+    if n <= 3:
+        rows_per_bollard = 4
+    elif n <= 5:
+        rows_per_bollard = 3
+    else:
+        rows_per_bollard = 2
+
     try:
         gtfs_static.ensure_loaded()
     except Exception as e:
@@ -190,21 +199,21 @@ async def api_departures():
         except Exception as e:
             log.warning("RT enrich błąd: %s", e)
 
-        # Dodaj informacje o pojeździe
+        # Dodaj informacje o pojeździe i minuty
         for dep in deps:
             vid = dep.get("vehicle_id", "")
             dep["vehicle_info"] = gtfs_static.get_vehicle_info(vid) if vid else {}
-
-            # Przelicz minuty
             dep["minutes"] = _calc_minutes(
                 dep["scheduled_departure"],
                 dep.get("delay_seconds"),
+                dep.get("scheduled_departure_str"),
             )
 
         result.append({
-            "bollard":    bollard,
-            "departures": deps,
-            "error":      None,
+            "bollard":          bollard,
+            "departures":       deps[:rows_per_bollard],
+            "rows_per_bollard": rows_per_bollard,
+            "error":            None,
         })
 
     return result
@@ -224,24 +233,37 @@ async def api_status():
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
-def _calc_minutes(scheduled: str, delay_seconds: Optional[int]) -> int:
+def _calc_minutes(scheduled: str, delay_seconds: Optional[int],
+                  scheduled_str: Optional[str] = None) -> int:
     """Oblicz ile minut do odjazdu (z uwzględnieniem opóźnienia)."""
     try:
-        now = datetime.now()
-        parts = scheduled.split(":")
-        h, m, s = int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0
-
-        # Obsługa godzin >24 (po północy)
         from datetime import date, timedelta
+        now = datetime.now()
+
+        # Użyj scheduled_str jeśli dostępny (już przeliczony dla nocnych)
+        # scheduled_str to HH:MM po przeliczeniu >24h
+        time_str = scheduled_str if scheduled_str else scheduled
+        parts = time_str.split(":")
+        h = int(parts[0])
+        m = int(parts[1])
+        s = int(parts[2]) if len(parts) > 2 else 0
+
         base = now.replace(hour=0, minute=0, second=0, microsecond=0)
         dep_dt = base + timedelta(hours=h, minutes=m, seconds=s)
+
+        # Jeśli godzina odjazdu jest wcześniejsza niż teraz
+        # i różnica > 12h — kurs jest na następny dzień
+        diff = (dep_dt - now).total_seconds()
+        if diff < -43200:  # -12h
+            dep_dt += timedelta(days=1)
+            diff = (dep_dt - now).total_seconds()
 
         # Dodaj opóźnienie
         if delay_seconds is not None:
             dep_dt += timedelta(seconds=delay_seconds)
+            diff = (dep_dt - now).total_seconds()
 
-        diff = (dep_dt - now).total_seconds()
-        if diff < -60:  # kurs już minął
+        if diff < -60:
             return -1
         return max(0, int(diff // 60))
     except Exception:
