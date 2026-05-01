@@ -54,6 +54,9 @@ class GTFSStatic:
         # vehicle_id → {low_floor, air_conditioner, ramp, ticket_machine, usb}
         self.vehicles: dict[str, dict] = {}
 
+        # trip_id → {seq → stop_name}  (do wyświetlania "gdzie jest pojazd")
+        self.trip_stop_names: dict[str, dict[int, str]] = {}
+
         self._feed_end_date: Optional[date] = None
         self._feed_start_date: Optional[date] = None
         self._loaded = False
@@ -259,14 +262,22 @@ class GTFSStatic:
 
     def _parse_stop_times(self, zf: zipfile.ZipFile):
         self.stop_times.clear()
+        self.trip_stop_names.clear()
         for row in self._csv_reader(zf, "stop_times.txt"):
-            sid = row["stop_id"].strip()
+            sid     = row["stop_id"].strip()
+            trip_id = row["trip_id"].strip()
+            seq     = int(row.get("stop_sequence", "0").strip())
             self.stop_times.setdefault(sid, []).append({
-                "trip_id":   row["trip_id"].strip(),
+                "trip_id":   trip_id,
                 "arrival":   row.get("arrival_time",   "").strip(),
                 "departure": row.get("departure_time", "").strip(),
-                "seq":       int(row.get("stop_sequence", "0").strip()),
+                "seq":       seq,
             })
+            # Buduj mapowanie trip_id → seq → stop_name
+            name = self.stop_id_to_name.get(sid, "")
+            if name:
+                self.trip_stop_names.setdefault(trip_id, {})[seq] = name
+
         # Sortuj po godzinie odjazdu
         for sid in self.stop_times:
             self.stop_times[sid].sort(key=lambda x: x["departure"])
@@ -504,6 +515,19 @@ class GTFSStatic:
 
     def get_vehicle_info(self, vehicle_id: str) -> dict:
         return self.vehicles.get(vehicle_id, {})
+
+    def get_stop_name_at_seq(self, trip_id: str, seq: int) -> str:
+        """Zwróć nazwę przystanku dla danego kursu i sekwencji."""
+        stops = self.trip_stop_names.get(trip_id, {})
+        if not stops:
+            return ""
+        # Jeśli dokładna sekwencja nie istnieje, weź najbliższą mniejszą
+        if seq in stops:
+            return stops[seq]
+        lower = [s for s in stops if s <= seq]
+        if lower:
+            return stops[max(lower)]
+        return stops[min(stops.keys())]
 
     def search_stops(self, pattern: str) -> list:
         """

@@ -122,9 +122,21 @@ class GTFSRealtime:
         """
         self.refresh_if_stale()
 
+    def enrich_departures(
+        self,
+        departures: list[dict],
+        stop_code_to_id: dict[str, str],
+        stop_code: str,
+        gtfs_static=None,
+    ) -> list[dict]:
+        """
+        Wzbogać odjazdy o dane RT używając trip_id jako klucza.
+        """
+        self.refresh_if_stale()
+
         for dep in departures:
             trip_id  = dep.get("trip_id", "")
-            stop_seq = dep.get("seq", 0)  # stop_sequence naszego przystanku
+            stop_seq = dep.get("seq", 0)
 
             vehicle = self._trip_vehicles.get(trip_id)
             if vehicle:
@@ -133,17 +145,24 @@ class GTFSRealtime:
                 dep["vehicle_id"]    = vid
                 dep["realtime"]      = True
 
-                # Opóźnienie tylko gdy pojazd już dotarł do naszego przystanku
-                # lub jest w jego pobliżu (cur_seq >= stop_seq)
+                # Nazwa przystanku gdzie aktualnie jest pojazd
+                if gtfs_static and cur_seq is not None:
+                    dep["current_stop"] = gtfs_static.get_stop_name_at_seq(
+                        trip_id, cur_seq)
+                else:
+                    dep["current_stop"] = ""
+
+                # Opóźnienie tylko gdy pojazd dotarł do naszego przystanku
                 delay = self._trip_delays.get(trip_id)
                 if delay is not None and cur_seq >= stop_seq:
                     dep["delay_seconds"] = delay
                 else:
-                    dep["delay_seconds"] = None  # pojazd jeszcze przed przystankiem
+                    dep["delay_seconds"] = None
             else:
                 dep["vehicle_label"] = ""
                 dep["vehicle_id"]    = ""
                 dep["realtime"]      = False
+                dep["current_stop"]  = ""
                 dep["delay_seconds"] = None
 
         return departures

@@ -84,9 +84,9 @@ function renderDepartures(data) {
       hdr.className = "dep-header";
       hdr.innerHTML = `
         <div class="dep-grid">
-          <span>Linia</span>
-          <span>Kierunek</span>
           <span>Godz.rozk.</span>
+          <span style="text-align:left;padding-left:8px">Kierunek</span>
+          <span style="text-align:left;padding-left:6px">Gdzie jest</span>
           <span>Za(min)</span>
           <span>Godz.rzecz.</span>
           <span>Opóźn.</span>
@@ -162,11 +162,15 @@ function buildDepRow(dep) {
 
   const row = document.createElement("div");
   row.className = "dep-row";
+  // Gdzie jest pojazd
+  const currentStop = dep.current_stop || "";
+  const currentClass = dep.realtime && currentStop ? "live" : "";
+
   row.innerHTML = `
     <div class="dep-grid">
-      <div class="dep-line">${esc(dep.line)}</div>
+      <div class="dep-sched"><span class="dep-line-badge">${esc(dep.line)}</span> ${esc(schedStr)}</div>
       <div class="dep-direction">${esc(dep.direction)}</div>
-      <div class="dep-sched">${esc(schedStr)}</div>
+      <div class="dep-current ${currentClass}">${esc(currentStop) || "—"}</div>
       <div class="dep-minutes ${minClass}">${minText}</div>
       <div class="dep-real ${realClass}">${realStr}</div>
       <div class="dep-delay ${delayClass}">${delayText}</div>

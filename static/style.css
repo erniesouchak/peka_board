@@ -107,10 +107,10 @@ html, body {
   color: var(--dim);
 }
 
-/* col: LINIA | KIERUNEK | GODZ.ROZK | ZA(min) | GODZ.RZECZ | OPÓŹN | POJAZD | IKONY */
+/* col: GODZ.ROZK | KIERUNEK | GDZIE JEST | ZA(min) | GODZ.RZECZ | OPÓŹN | POJAZD | IKONY */
 .dep-grid {
   display: grid;
-  grid-template-columns: 60px 1fr 82px 68px 72px 80px 68px 76px;
+  grid-template-columns: 80px 1fr 1fr 64px 68px 76px 68px 72px;
   align-items: center;
 }
 
@@ -157,6 +157,14 @@ html, body {
   text-overflow: ellipsis;
 }
 
+.dep-line-badge {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--gold);
+  margin-right: 2px;
+}
+
 /* Godzina rozkładowa — wyraźna, jasna */
 .dep-sched {
   font-family: var(--font-mono);
@@ -179,8 +187,16 @@ html, body {
 .dep-minutes.arriving  { color: var(--gold);  }
 .dep-minutes.onboard   { color: var(--red);   }
 
-/* Godzina rzeczywista */
-.dep-real {
+/* Gdzie jest pojazd */
+.dep-current {
+  font-size: 0.78rem;
+  color: var(--dim);
+  padding-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dep-current.live { color: var(--green); }
   font-family: var(--font-mono);
   font-size: 0.88rem;
   color: var(--dim);
