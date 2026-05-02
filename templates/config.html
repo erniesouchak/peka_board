@@ -141,17 +141,20 @@ function renderBollards(bollards) {
     const div = document.createElement("div");
     div.className = "boll-card";
 
-    // Linia + kierunek per linia
-    // b.lines = lista numerów linii, b.direction = główny kierunek
-    // Pobieramy szczegóły kierunków z API lub pokazujemy co mamy
-    const linesHtml = b.lines && b.lines.length
-      ? b.lines.map(l => `<span class="boll-line-badge">${l}</span>`).join(" ")
-      : "";
+    // Linie z kierunkami
+    const lwd = b.lines_with_dirs || b.lines.map(l => ({ line: l, directions: [] }));
+    const linesHtml = lwd.map(ld => {
+      const dirs = ld.directions && ld.directions.length
+        ? `<span class="boll-line-dirs">${ld.directions.join(", ")}</span>`
+        : "";
+      return `<div class="boll-line-row">
+        <span class="boll-line-badge">${ld.line}</span>${dirs}
+      </div>`;
+    }).join("");
 
     div.innerHTML = `
       <div class="boll-card-header">
         <span class="boll-card-symbol">${b.symbol}</span>
-        <span class="boll-card-dir">→ ${b.direction}</span>
       </div>
       <div class="boll-card-lines">${linesHtml}</div>`;
 

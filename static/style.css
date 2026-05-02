@@ -565,3 +565,15 @@ body.config-body { overflow: auto; height: auto; }
   color: var(--gold);
   min-width: 70px;
 }
+
+.boll-line-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.boll-line-dirs {
+  font-size: 0.78rem;
+  color: var(--dim);
+}

@@ -606,7 +606,7 @@ class GTFSStatic:
     def get_bollards_for_stop(self, stop_name: str) -> list:
         """
         Zwróć wszystkie bollardy dla przystanku o podanej nazwie.
-        Dla każdego bollardu dołącz linie które przez niego przejeżdżają.
+        Dla każdego bollardu dołącz linie z kierunkami.
         """
         self.ensure_loaded()
         results = []
@@ -615,32 +615,43 @@ class GTFSStatic:
             if name != stop_name:
                 continue
 
-            # Znajdź linie przejeżdżające przez ten bollard
-            lines = set()
+            # Dla każdej linii zbierz unikalne kierunki
+            line_directions: dict[str, set] = {}
             for st in self.stop_times.get(sid, []):
                 trip = self.trips.get(st["trip_id"])
-                if trip:
-                    line = self.routes.get(trip["route_id"], "")
-                    if line:
-                        lines.add(line)
+                if not trip:
+                    continue
+                line = self.routes.get(trip["route_id"], "")
+                if not line:
+                    continue
+                headsign = trip["headsign"]
+                if headsign:
+                    line_directions.setdefault(line, set()).add(headsign)
 
-            # Znajdź dominujący kierunek (headsign) dla tego bollardu
-            directions = {}
+            # Zbuduj listę linii z kierunkami
+            lines_with_dirs = []
+            for line in sorted(line_directions.keys(), key=lambda x: (len(x), x)):
+                dirs = sorted(line_directions[line])
+                lines_with_dirs.append({
+                    "line":       line,
+                    "directions": dirs[:3],  # max 3 kierunki per linia
+                })
+
+            # Główny kierunek (najczęstszy headsign)
+            all_dirs: dict[str, int] = {}
             for st in self.stop_times.get(sid, []):
                 trip = self.trips.get(st["trip_id"])
                 if trip and trip["headsign"]:
-                    directions[trip["headsign"]] = directions.get(trip["headsign"], 0) + 1
-
-            direction = max(directions, key=directions.get) if directions else "—"
-            sorted_lines = sorted(lines, key=lambda x: (len(x), x))
+                    all_dirs[trip["headsign"]] = all_dirs.get(trip["headsign"], 0) + 1
+            direction = max(all_dirs, key=all_dirs.get) if all_dirs else "—"
 
             results.append({
-                "symbol":    code,
-                "stop_name": stop_name,
-                "direction": direction,
-                "label":     f"{stop_name} → {direction}",
-                "lines":     sorted_lines[:8],
+                "symbol":            code,
+                "stop_name":         stop_name,
+                "direction":         direction,
+                "label":             f"{stop_name} → {direction}",
+                "lines":             [l["line"] for l in lines_with_dirs][:8],
+                "lines_with_dirs":   lines_with_dirs[:8],
             })
 
-        # Sortuj po symbolu
         return sorted(results, key=lambda x: x["symbol"])
