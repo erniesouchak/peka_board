@@ -259,3 +259,24 @@ function renderWaste(data) {
 // Uruchom przy starcie i odświeżaj co godzinę
 fetchWaste();
 setInterval(fetchWaste, 3600000);
+
+// ── Zdjęcia Synology ─────────────────────────────────────────────────────────
+
+async function fetchPhoto() {
+  try {
+    const r = await fetch("/api/photo/random");
+    if (!r.ok) return;
+    const data = await r.json();
+    const el = document.getElementById("photo-body");
+    if (el && data.proxy_url) {
+      el.innerHTML = `<img src="${data.proxy_url}" alt="Zdjęcie"
+        style="width:100%;height:100%;object-fit:cover;border-radius:0 0 10px 10px">`;
+    }
+  } catch(e) {
+    // Cisza jeśli Synology niedostępny
+  }
+}
+
+// Uruchom przy starcie i co 15 minut
+fetchPhoto();
+setInterval(fetchPhoto, 15 * 60 * 1000);

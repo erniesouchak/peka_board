@@ -30,6 +30,7 @@ from fastapi.templating import Jinja2Templates
 from gtfs_static import GTFSStatic
 from gtfs_rt import GTFSRealtime
 from waste_schedule import WasteSchedule
+from synology_photos import SynologyPhotos
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ templates = Jinja2Templates(directory="templates")
 gtfs_static    = GTFSStatic()
 gtfs_rt        = GTFSRealtime()
 waste_schedule = WasteSchedule()
+synology       = SynologyPhotos()
 
 
 # ── Konfiguracja ──────────────────────────────────────────────────────────────
@@ -77,6 +79,10 @@ async def startup():
         waste_schedule.ensure_loaded(rejon="V")
     except Exception as e:
         log.error("Błąd ładowania harmonogramu wywozów: %s", e)
+    try:
+        synology.load_config()
+    except Exception as e:
+        log.error("Błąd ładowania konfiguracji Synology: %s", e)
     # Uruchom zadanie sprawdzające ważność paczki co godzinę
     asyncio.create_task(_gtfs_watcher())
 
@@ -239,6 +245,27 @@ async def api_departures():
         })
 
     return result
+
+
+@app.get("/api/photo/random")
+async def api_photo_random():
+    """Zwróć dane losowego zdjęcia z Synology Photos."""
+    if not synology.is_configured:
+        return JSONResponse({"error": "Synology Photos nie skonfigurowany"}, status_code=503)
+    photo = synology.get_random_photo()
+    if not photo:
+        return JSONResponse({"error": "Brak zdjęć"}, status_code=404)
+    return photo
+
+
+@app.get("/api/photo/{photo_id}")
+async def api_photo_proxy(photo_id: int):
+    """Proxy dla zdjęć Synology — ukrywa token sesji przed przeglądarką."""
+    from fastapi.responses import Response
+    data = synology.fetch_photo_bytes(photo_id)
+    if not data:
+        return JSONResponse({"error": "Nie znaleziono zdjęcia"}, status_code=404)
+    return Response(content=data, media_type="image/jpeg")
 
 
 @app.get("/api/waste")
