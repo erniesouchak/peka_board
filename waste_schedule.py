@@ -111,7 +111,6 @@ class WasteSchedule:
         rejon_tag = f"R {rejon}"
         current_year = date.today().year
 
-        # Znajdź wszystkie tabele na stronie
         tables = soup.find_all("table")
 
         for table in tables:
@@ -119,13 +118,10 @@ class WasteSchedule:
             if not rows:
                 continue
 
-            # Pierwszy wiersz to nagłówek z nazwą rejonu
-            header_cells = rows[0].find_all(["td", "th"])
+            # Znajdź nagłówek kolumn (pierwszy wiersz tabeli)
+            header_row = rows[0]
+            header_cells = header_row.find_all(["td", "th"])
             if not header_cells:
-                continue
-
-            first_cell = header_cells[0].get_text(strip=True)
-            if first_cell != rejon_tag:
                 continue
 
             # Odczytaj typy odpadów z nagłówka
@@ -137,41 +133,63 @@ class WasteSchedule:
                 )
                 waste_cols.append(waste_type)
 
-            # Odczytaj wiersze z miesiącami
+            # Szukaj wiersza z naszym rejonem
+            in_our_rejon = False
             for row in rows[1:]:
                 cells = row.find_all(["td", "th"])
                 if not cells:
                     continue
 
-                month_text = cells[0].get_text(strip=True).upper()
-                month_num = MONTHS_PL.get(month_text)
-                if not month_num:
+                first_cell = cells[0].get_text(strip=True)
+
+                # Sprawdź czy to wiersz z nagłówkiem rejonu
+                if first_cell == rejon_tag:
+                    # Zaktualizuj nagłówek kolumn dla tego rejonu
+                    waste_cols = []
+                    for cell in cells[1:]:
+                        text = cell.get_text(strip=True).lower()
+                        waste_type = next(
+                            (v for k, v in WASTE_TYPES.items() if k in text), None
+                        )
+                        waste_cols.append(waste_type)
+                    in_our_rejon = True
                     continue
 
-                # Dla każdej kolumny odpadów
-                for col_idx, waste_type in enumerate(waste_cols):
-                    if waste_type is None:
-                        continue
-                    cell_idx = col_idx + 1
-                    if cell_idx >= len(cells):
-                        continue
-
-                    cell_text = cells[cell_idx].get_text(strip=True)
-                    if not cell_text:
+                # Jeśli jesteśmy w naszym rejonie i to wiersz z miesiącem
+                if in_our_rejon:
+                    # Jeśli to nowy nagłówek rejonu — koniec naszego rejonu
+                    if first_cell.startswith("R ") and len(first_cell) <= 6:
+                        in_our_rejon = False
                         continue
 
-                    # Parsuj daty — format: "6,7 i 20,21" lub "6 i 20" lub "15"
-                    days = self._parse_days(cell_text)
-                    for day in days:
-                        try:
-                            d = date(current_year, month_num, day)
-                            key = d.isoformat()
-                            if key not in schedule:
-                                schedule[key] = []
-                            if waste_type not in schedule[key]:
-                                schedule[key].append(waste_type)
-                        except ValueError:
-                            pass  # Nieprawidłowa data
+                    month_text = first_cell.upper()
+                    month_num = MONTHS_PL.get(month_text)
+                    if not month_num:
+                        continue
+
+                    # Dla każdej kolumny odpadów
+                    for col_idx, waste_type in enumerate(waste_cols):
+                        if waste_type is None:
+                            continue
+                        cell_idx = col_idx + 1
+                        if cell_idx >= len(cells):
+                            continue
+
+                        cell_text = cells[cell_idx].get_text(strip=True)
+                        if not cell_text:
+                            continue
+
+                        days = self._parse_days(cell_text)
+                        for day in days:
+                            try:
+                                d = date(current_year, month_num, day)
+                                key = d.isoformat()
+                                if key not in schedule:
+                                    schedule[key] = []
+                                if waste_type not in schedule[key]:
+                                    schedule[key].append(waste_type)
+                            except ValueError:
+                                pass
 
         return schedule
 
