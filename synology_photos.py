@@ -89,6 +89,7 @@ class SynologyPhotos:
         if not self._sharing_sid:
             if not self._get_sharing_sid():
                 return
+        # NIE odświeżaj sid jeśli już mamy — używaj tego samego
 
         try:
             photo_list = []
@@ -167,6 +168,7 @@ class SynologyPhotos:
         if not self._sharing_sid:
             if not self._get_sharing_sid():
                 return None
+        log.debug("Pobieranie zdjęcia %d, sid=%s...", photo_id, self._sharing_sid[:10])
         try:
             r = requests.get(
                 f"{self._url}/mo/sharing/webapi/entry.cgi",
@@ -187,6 +189,7 @@ class SynologyPhotos:
                 timeout=15,
                 verify=False,
             )
+            log.debug("Odpowiedź Synology: %d %s", r.status_code, r.headers.get("content-type",""))
             if r.status_code == 200 and r.headers.get("content-type", "").startswith("image"):
                 return r.content
             # Sesja wygasła — odśwież
