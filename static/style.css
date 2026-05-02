@@ -597,7 +597,9 @@ body.config-body { overflow: auto; height: auto; }
 }
 
 /* ── Poprawki dla jasnego motywu ─────────────────────────────────────────── */
-[data-theme="light"] .clock-time { color: var(--gold); }
+[data-theme="light"] .clock-time { color: #5a3e00; }
+[data-theme="light"] .clock-date { color: #2a1a00; }
+[data-theme="light"] .clock-status { color: var(--dim); }
 [data-theme="light"] .dep-sched  { color: #1a1a1a; }
 [data-theme="light"] .dep-line   { color: var(--gold); }
 [data-theme="light"] .bollard-label { color: var(--blue); }

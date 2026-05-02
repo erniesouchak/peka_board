@@ -149,7 +149,7 @@ function buildDepRow(dep) {
   let delayText = "", delayClass = "nodata";
   if (dep.delay_seconds !== null && dep.delay_seconds !== undefined) {
     const dm = Math.round(dep.delay_seconds / 60);
-    if (dm === 0)    { delayText = "punk.";    delayClass = "ontime"; }
+    if (dm === 0)    { delayText = "na czas";  delayClass = "ontime"; }
     else if (dm > 0) { delayText = `+${dm}'`;  delayClass = "late";   }
     else             { delayText = `${dm}'`;   delayClass = "early";  }
   }
