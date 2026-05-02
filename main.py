@@ -246,7 +246,7 @@ async def api_waste():
     """Zwróć najbliższe wywozy odpadów (3 dni do przodu)."""
     try:
         waste_schedule.ensure_loaded(rejon="V")
-        return waste_schedule.get_upcoming(days_ahead=3)
+        return waste_schedule.get_upcoming(days_ahead=4)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
