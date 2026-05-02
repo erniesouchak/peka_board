@@ -1,8 +1,6 @@
 {
   "synology": {
-    "url":      "http://192.168.1.100:5000",
-    "username": "twoj_login",
-    "password": "twoje_haslo",
-    "album":    "Nazwa Albumu"
+    "url":        "http://192.168.1.100:5000",
+    "passphrase": "TwojPassphrase"
   }
 }
