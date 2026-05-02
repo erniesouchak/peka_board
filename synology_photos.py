@@ -170,21 +170,22 @@ class SynologyPhotos:
                 return None
         log.debug("Pobieranie zdjęcia %d, sid=%s...", photo_id, self._sharing_sid[:10])
         try:
+            url = (
+                f"{self._url}/mo/sharing/webapi/entry.cgi"
+                f"?api=SYNO.Foto.Thumbnail"
+                f"&method=get"
+                f"&version=1"
+                f"&id={photo_id}"
+                f"&cache_key={cache_key}"
+                f"&type=unit"
+                f"&size=xl"
+                f"&passphrase={self._passphrase}"
+            )
             r = requests.get(
-                f"{self._url}/mo/sharing/webapi/entry.cgi",
+                url,
                 headers={
                     "x-syno-sharing": self._passphrase,
                     "Cookie": f"sharing_sid={self._sharing_sid}",
-                },
-                params={
-                    "api":        "SYNO.Foto.Thumbnail",
-                    "method":     "get",
-                    "version":    "1",
-                    "id":         photo_id,
-                    "cache_key":  cache_key,
-                    "type":       "unit",
-                    "size":       "xl",
-                    "passphrase": self._passphrase,
                 },
                 timeout=15,
                 verify=False,
