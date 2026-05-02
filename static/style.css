@@ -45,13 +45,143 @@ html, body {
   overflow: hidden;
 }
 
-.board {
+/* ── Dashboard — siatka 3-kolumnowa ──────────────────────────────────────── */
+.dashboard {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 1fr 1fr 2fr;
+  grid-template-rows: 1fr;
   gap: 8px;
-  padding: 8px 8px 36px 8px;
+  padding: 8px 8px 34px 8px;
   height: 100vh;
   width: 100vw;
+  box-sizing: border-box;
+}
+
+.col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.col-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.col-right {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sep) var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Kafelek bazowy */
+.tile {
+  background: var(--bg2);
+  border: 1px solid var(--sep);
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Nagłówek kafelka */
+.tile-header {
+  background: var(--bg4);
+  border-bottom: 1px solid var(--sep);
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Zegar */
+.tile-clock {
+  background: var(--bg2);
+  border: 1px solid var(--sep);
+  border-radius: 10px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Kalendarz — wypełnia resztę lewej kolumny */
+.tile-calendar {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  scrollbar-width: thin;
+}
+
+/* Home Assistant — górna część środkowej kolumny */
+.tile-ha {
+  flex: 0 0 auto;
+  min-height: 120px;
+}
+
+.ha-body {
+  padding: 10px;
+}
+
+/* Zdjęcie — wypełnia środek środkowej kolumny */
+.tile-photo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.photo-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.photo-body img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Wywóz odpadów — dolna część środkowej kolumny */
+.tile-waste {
+  flex: 0 0 auto;
+  min-height: 80px;
+}
+
+.waste-body {
+  padding: 8px 12px;
+}
+
+/* Placeholder */
+.cal-placeholder {
+  color: var(--dim);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 20px;
 }
 
 .tile-clock {
@@ -88,13 +218,10 @@ html, body {
 }
 
 #departures-container {
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--sep) var(--bg);
   display: flex;
   flex-direction: column;
   gap: 6px;
-  align-items: stretch;
+  width: 100%;
 }
 
 .tile-bollard {
