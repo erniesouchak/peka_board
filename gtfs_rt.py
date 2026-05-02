@@ -116,21 +116,11 @@ class GTFSRealtime:
         departures: list[dict],
         stop_code_to_id: dict[str, str],
         stop_code: str,
-    ) -> list[dict]:
-        """
-        Wzbogać odjazdy o dane RT używając trip_id jako klucza.
-        """
-        self.refresh_if_stale()
-
-    def enrich_departures(
-        self,
-        departures: list[dict],
-        stop_code_to_id: dict[str, str],
-        stop_code: str,
         gtfs_static=None,
     ) -> list[dict]:
         """
         Wzbogać odjazdy o dane RT używając trip_id jako klucza.
+        Nocne kursy mają prefix prev_ w GTFS — szukamy bez niego w RT.
         """
         self.refresh_if_stale()
 
@@ -138,7 +128,10 @@ class GTFSRealtime:
             trip_id  = dep.get("trip_id", "")
             stop_seq = dep.get("seq", 0)
 
-            vehicle = self._trip_vehicles.get(trip_id)
+            # Nocne kursy mają prefix prev_ — szukaj w RT bez tego prefiksu
+            rt_trip_id = trip_id.replace("prev_", "", 1)
+
+            vehicle = self._trip_vehicles.get(rt_trip_id)
             if vehicle:
                 label, vid, cur_seq = vehicle
                 dep["vehicle_label"] = label
@@ -148,12 +141,12 @@ class GTFSRealtime:
                 # Nazwa przystanku gdzie aktualnie jest pojazd
                 if gtfs_static and cur_seq is not None:
                     dep["current_stop"] = gtfs_static.get_stop_name_at_seq(
-                        trip_id, cur_seq)
+                        rt_trip_id, cur_seq)
                 else:
                     dep["current_stop"] = ""
 
                 # Opóźnienie tylko gdy pojazd dotarł do naszego przystanku
-                delay = self._trip_delays.get(trip_id)
+                delay = self._trip_delays.get(rt_trip_id)
                 if delay is not None and cur_seq >= stop_seq:
                     dep["delay_seconds"] = delay
                 else:
