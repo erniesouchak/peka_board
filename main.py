@@ -255,14 +255,16 @@ async def api_photo_random():
     photo = synology.get_random_photo()
     if not photo:
         return JSONResponse({"error": "Brak zdjęć"}, status_code=404)
+    log.info("SYNOLOGY ID w random: %d, sid: %s", id(synology), synology._sharing_sid[:10] if synology._sharing_sid else "PUSTY")
     return photo
 
 
 @app.get("/api/photo/{photo_id}")
-async def api_photo_proxy(photo_id: int):
+async def api_photo_proxy(photo_id: int, cache_key: str = ""):
     """Proxy dla zdjęć Synology — ukrywa token sesji przed przeglądarką."""
     from fastapi.responses import Response
-    data = synology.fetch_photo_bytes(photo_id)
+    log.info("SYNOLOGY ID w proxy: %d, sid: %s", id(synology), synology._sharing_sid[:10] if synology._sharing_sid else "PUSTY")
+    data = synology.fetch_photo_bytes(photo_id, cache_key)
     if not data:
         return JSONResponse({"error": "Nie znaleziono zdjęcia"}, status_code=404)
     return Response(content=data, media_type="image/jpeg")
