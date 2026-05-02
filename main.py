@@ -88,24 +88,26 @@ async def startup():
 
 
 async def _gtfs_watcher():
-    """Co godzinę sprawdza czy paczka GTFS nadal obowiązuje.
-    Jeśli nie — pobiera nową automatycznie."""
-    while True:
-        await asyncio.sleep(3600)  # 1 godzina
-        try:
-            today = date.today()
-            if (gtfs_static._feed_start_date is None
-                    or gtfs_static._feed_end_date is None
-                    or not (gtfs_static._feed_start_date <= today
-                            <= gtfs_static._feed_end_date)):
-                log.info("Paczka GTFS wygasła lub nie obejmuje dziś (%s) — pobieram nową…", today)
-                gtfs_static._loaded = False  # wymuś ponowne załadowanie
-                gtfs_static.ensure_loaded()
-                log.info("Paczka GTFS zaktualizowana automatycznie.")
-            else:
-                log.debug("Paczka GTFS aktualna do %s.", gtfs_static._feed_end_date)
-        except Exception as e:
-            log.error("Błąd auto-aktualizacji GTFS: %s", e)
+    """Co godzinę sprawdza czy paczka GTFS nadal obowiązuje."""
+    try:
+        while True:
+            await asyncio.sleep(3600)
+            try:
+                today = date.today()
+                if (gtfs_static._feed_start_date is None
+                        or gtfs_static._feed_end_date is None
+                        or not (gtfs_static._feed_start_date <= today
+                                <= gtfs_static._feed_end_date)):
+                    log.info("Paczka GTFS wygasła — pobieram nową…")
+                    gtfs_static._loaded = False
+                    gtfs_static.ensure_loaded()
+                    log.info("Paczka GTFS zaktualizowana automatycznie.")
+                else:
+                    log.debug("Paczka GTFS aktualna do %s.", gtfs_static._feed_end_date)
+            except Exception as e:
+                log.error("Błąd auto-aktualizacji GTFS: %s", e)
+    except asyncio.CancelledError:
+        log.debug("GTFS watcher zatrzymany.")
 
 
 # ── Endpointy HTML ────────────────────────────────────────────────────────────
