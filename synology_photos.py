@@ -170,7 +170,6 @@ class SynologyPhotos:
                 return None
         log.debug("Pobieranie zdjęcia %d, sid=%s...", photo_id, self._sharing_sid[:10])
         try:
-            log.info("fetch_photo_bytes: photo_id=%s cache_key=%r", photo_id, cache_key)
             url = (
                 f"{self._url}/mo/sharing/webapi/entry.cgi"
                 f"?api=SYNO.Foto.Thumbnail"
