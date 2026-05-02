@@ -1,6 +1,7 @@
 /* ── Reset & Base ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Motyw ciemny (domyślny) */
 :root {
   --bg:        #080e1a;
   --bg2:       #0b1220;
@@ -14,9 +15,26 @@
   --text:      #e8eef8;
   --dim:       #4a5568;
   --late:      #e74c3c;
-  --early:     #2ecc71;
+  --early:     #27ae60;
   --font-mono: "Consolas", "Courier New", monospace;
   --font-ui:   "Segoe UI", system-ui, sans-serif;
+}
+
+/* Motyw jasny */
+[data-theme="light"] {
+  --bg:        #f5f0e8;
+  --bg2:       #ede8df;
+  --bg3:       #e4dfd5;
+  --bg4:       #ddd8ce;
+  --sep:       #c8c2b6;
+  --gold:      #b8860b;
+  --green:     #1a7a3a;
+  --red:       #c0392b;
+  --blue:      #1a5276;
+  --text:      #1a1a1a;
+  --dim:       #7a7060;
+  --late:      #c0392b;
+  --early:     #1a7a3a;
 }
 
 html, body {
@@ -577,3 +595,19 @@ body.config-body { overflow: auto; height: auto; }
   font-size: 0.78rem;
   color: var(--dim);
 }
+
+/* ── Poprawki dla jasnego motywu ─────────────────────────────────────────── */
+[data-theme="light"] .clock-time { color: var(--gold); }
+[data-theme="light"] .dep-sched  { color: #1a1a1a; }
+[data-theme="light"] .dep-line   { color: var(--gold); }
+[data-theme="light"] .bollard-label { color: var(--blue); }
+[data-theme="light"] .boll-line-badge { color: var(--gold); background: var(--sep); }
+[data-theme="light"] .dep-veh-num.live { color: var(--green); }
+[data-theme="light"] .icon-wheelchair.full    { color: var(--green); }
+[data-theme="light"] .icon-wheelchair.partial { color: #b8860b; }
+[data-theme="light"] .icon-ac.active { color: var(--blue); }
+[data-theme="light"] .dep-minutes.realtime  { color: var(--green); }
+[data-theme="light"] .dep-minutes.scheduled { color: #5a5040; }
+[data-theme="light"] .dep-current.live { color: var(--green); }
+[data-theme="light"] .statusbar { border-top: 1px solid var(--sep); }
+[data-theme="light"] .btn-rows { background: var(--sep); color: var(--text); }

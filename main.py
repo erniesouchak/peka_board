@@ -102,8 +102,29 @@ async def _gtfs_watcher():
 async def dashboard(request: Request):
     config = load_config()
     return templates.TemplateResponse("index.html", {
-        "request": request,
+        "request":   request,
         "has_config": bool(config),
+        "theme":     "dark",
+    })
+
+
+@app.get("/light", response_class=HTMLResponse)
+async def dashboard_light(request: Request):
+    config = load_config()
+    return templates.TemplateResponse("index.html", {
+        "request":   request,
+        "has_config": bool(config),
+        "theme":     "light",
+    })
+
+
+@app.get("/dark", response_class=HTMLResponse)
+async def dashboard_dark(request: Request):
+    config = load_config()
+    return templates.TemplateResponse("index.html", {
+        "request":   request,
+        "has_config": bool(config),
+        "theme":     "dark",
     })
 
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl" data-theme="{{ theme }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,6 +31,11 @@
   <span id="sb-refresh">Odświeżanie…</span>
   <button onclick="fetchDepartures()" class="btn-refresh">⟳ Odśwież</button>
   <a href="/config-page" class="btn-config">⚙ Konfiguracja</a>
+  {% if theme == "dark" %}
+  <a href="/light" class="btn-config">☀ Jasny</a>
+  {% else %}
+  <a href="/dark" class="btn-config">🌙 Ciemny</a>
+  {% endif %}
 </div>
 
 {% if not has_config %}
