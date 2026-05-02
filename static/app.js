@@ -96,7 +96,8 @@ function renderDepartures(data) {
       tile.appendChild(hdr);
 
       // Wiersze — max 3
-      const deps = group.departures.slice(0, 3);
+      const rows = group.rows_per_bollard || 3;
+      const deps = group.departures.slice(0, rows);
       for (const dep of deps) {
         const row = buildDepRow(dep);
         if (row) tile.appendChild(row);
@@ -134,14 +135,15 @@ function buildDepRow(dep) {
     }
   }
 
-  // Godzina rzeczywista = teraz + minuty
+  // Godzina rzeczywista = teraz + minuty — tylko gdy mamy dane RT
   let realStr = "—";
-  if (min >= 0) {
+  let realClass = "";
+  if (dep.realtime && min >= 0) {
     const realTime = new Date(Date.now() + min * 60000);
     realStr = String(realTime.getHours()).padStart(2,"0") + ":" +
               String(realTime.getMinutes()).padStart(2,"0");
+    realClass = "realtime";
   }
-  const realClass = dep.realtime ? "realtime" : "";
 
   // Opóźnienie
   let delayText = "", delayClass = "nodata";
