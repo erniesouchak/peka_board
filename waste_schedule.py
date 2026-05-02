@@ -41,12 +41,12 @@ MONTHS_PL = {
 
 # Ikony dla typów odpadów
 WASTE_ICONS = {
-    "zmieszane":        ("🗑", "#888"),
-    "szkło":            ("🍾", "#2ecc71"),
-    "tworzywa":         ("♻", "#f39c12"),
-    "papier":           ("📰", "#3498db"),
-    "wielkogabarytowe": ("🛋", "#9b59b6"),
-    "bio":              ("🌿", "#27ae60"),
+    "zmieszane":        ("fa-trash",        "#888888"),
+    "szkło":            ("fa-wine-bottle",   "#2ecc71"),
+    "tworzywa":         ("fa-recycle",       "#f39c12"),
+    "papier":           ("fa-newspaper",     "#3498db"),
+    "wielkogabarytowe": ("fa-couch",         "#9b59b6"),
+    "bio":              ("fa-leaf",          "#27ae60"),
 }
 
 
@@ -228,8 +228,8 @@ class WasteSchedule:
                     "items": [
                         {
                             "type":  wt,
-                            "icon":  WASTE_ICONS.get(wt, ("♻", "#888"))[0],
-                            "color": WASTE_ICONS.get(wt, ("♻", "#888"))[1],
+                            "icon":  WASTE_ICONS.get(wt, ("fa-recycle", "#888"))[0],
+                            "color": WASTE_ICONS.get(wt, ("fa-recycle", "#888"))[1],
                             "label": wt.capitalize(),
                         }
                         for wt in waste_types
@@ -240,15 +240,15 @@ class WasteSchedule:
 
     def _date_label(self, d: date, today: date) -> str:
         diff = (d - today).days
+        date_str = f"{d.day} maja" if d.month == 5 else f"{d.day}.{d.month:02d}"
+        days_pl = ["pon.","wt.","śr.","czw.","pt.","sob.","niedz."]
+        day_name = days_pl[d.weekday()]
         if diff == 0:
-            return "Dziś"
+            return f"Dziś, {date_str}"
         elif diff == 1:
-            return "Jutro"
-        elif diff == 2:
-            return "Pojutrze"
+            return f"Jutro, {date_str}"
         else:
-            days_pl = ["poniedziałek","wtorek","środa","czwartek","piątek","sobota","niedziela"]
-            return days_pl[d.weekday()]
+            return f"{day_name} {date_str}"
 
     @property
     def is_loaded(self) -> bool:

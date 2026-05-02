@@ -247,7 +247,8 @@ function renderWaste(data) {
       <span class="waste-icons">
         ${day.items.map(item =>
           `<span class="waste-item" style="color:${item.color}" title="${item.label}">
-            ${item.icon} <span class="waste-item-label">${item.label}</span>
+            <i class="fa-solid ${item.icon}"></i>
+            <span class="waste-item-label">${item.label}</span>
           </span>`
         ).join("")}
       </span>
