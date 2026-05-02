@@ -740,3 +740,51 @@ body.config-body { overflow: auto; height: auto; }
 [data-theme="light"] .dep-current.live { color: var(--green); }
 [data-theme="light"] .statusbar { border-top: 1px solid var(--sep); }
 [data-theme="light"] .btn-rows { background: var(--sep); color: var(--text); }
+
+/* ── Wywóz odpadów ────────────────────────────────────────────────────────── */
+.waste-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--sep);
+  flex-wrap: wrap;
+}
+
+.waste-day:last-child { border-bottom: none; }
+
+.waste-day-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--dim);
+  min-width: 60px;
+}
+
+.waste-day-label.today    { color: var(--red);  }
+.waste-day-label.tomorrow { color: var(--gold); }
+
+.waste-icons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.waste-item {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.waste-item-label {
+  font-size: 0.75rem;
+  color: var(--text);
+  opacity: 0.8;
+}
+
+.waste-ok {
+  padding: 10px;
+  color: var(--green);
+  font-size: 0.82rem;
+  text-align: center;
+}

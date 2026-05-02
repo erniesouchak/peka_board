@@ -218,3 +218,43 @@ function esc(str) {
 }
 
 fetchDepartures();
+
+// ── Harmonogram wywozów ───────────────────────────────────────────────────────
+
+async function fetchWaste() {
+  try {
+    const r = await fetch("/api/waste");
+    const data = await r.json();
+    renderWaste(data);
+  } catch(e) {
+    document.getElementById("waste-body").innerHTML =
+      "<div class='cal-placeholder'>Błąd ładowania</div>";
+  }
+}
+
+function renderWaste(data) {
+  const el = document.getElementById("waste-body");
+  if (!data || !data.length) {
+    el.innerHTML = "<div class='waste-ok'>✓ Brak wywozu w ciągu 3 dni</div>";
+    return;
+  }
+
+  el.innerHTML = data.map(day => `
+    <div class="waste-day">
+      <span class="waste-day-label ${day.days_until === 0 ? 'today' : day.days_until === 1 ? 'tomorrow' : ''}">
+        ${day.date_label}
+      </span>
+      <span class="waste-icons">
+        ${day.items.map(item =>
+          `<span class="waste-item" style="color:${item.color}" title="${item.label}">
+            ${item.icon} <span class="waste-item-label">${item.label}</span>
+          </span>`
+        ).join("")}
+      </span>
+    </div>
+  `).join("");
+}
+
+// Uruchom przy starcie i odświeżaj co godzinę
+fetchWaste();
+setInterval(fetchWaste, 3600000);

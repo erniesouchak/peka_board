@@ -29,6 +29,7 @@ from fastapi.templating import Jinja2Templates
 
 from gtfs_static import GTFSStatic
 from gtfs_rt import GTFSRealtime
+from waste_schedule import WasteSchedule
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -43,8 +44,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Globalne instancje GTFS
-gtfs_static = GTFSStatic()
-gtfs_rt     = GTFSRealtime()
+gtfs_static    = GTFSStatic()
+gtfs_rt        = GTFSRealtime()
+waste_schedule = WasteSchedule()
 
 
 # ── Konfiguracja ──────────────────────────────────────────────────────────────
@@ -71,6 +73,10 @@ async def startup():
         gtfs_static.ensure_loaded()
     except Exception as e:
         log.error("Błąd ładowania GTFS: %s", e)
+    try:
+        waste_schedule.ensure_loaded(rejon="V")
+    except Exception as e:
+        log.error("Błąd ładowania harmonogramu wywozów: %s", e)
     # Uruchom zadanie sprawdzające ważność paczki co godzinę
     asyncio.create_task(_gtfs_watcher())
 
@@ -233,6 +239,16 @@ async def api_departures():
         })
 
     return result
+
+
+@app.get("/api/waste")
+async def api_waste():
+    """Zwróć najbliższe wywozy odpadów (3 dni do przodu)."""
+    try:
+        waste_schedule.ensure_loaded(rejon="V")
+        return waste_schedule.get_upcoming(days_ahead=3)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/status")
