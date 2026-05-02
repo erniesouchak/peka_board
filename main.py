@@ -170,14 +170,8 @@ async def api_departures():
     if not config:
         return []
 
-    # Dynamiczna liczba wierszy zależnie od liczby bollardów
-    n = len(config)
-    if n <= 3:
-        rows_per_bollard = 4
-    elif n <= 5:
-        rows_per_bollard = 3
-    else:
-        rows_per_bollard = 2
+    # Liczba wierszy z konfiguracji każdego bollardu (domyślnie 2)
+    # Fallback: automatyczne jeśli brak w config
 
     try:
         gtfs_static.ensure_loaded()
@@ -187,7 +181,8 @@ async def api_departures():
 
     result = []
     for bollard in config:
-        symbol = bollard.get("symbol", "")
+        symbol           = bollard.get("symbol", "")
+        rows_per_bollard = max(1, min(5, int(bollard.get("rows", 2))))
         deps = gtfs_static.get_departures_for_stop(
             symbol, limit=MAX_DEPARTURES_PER_STOP
         )

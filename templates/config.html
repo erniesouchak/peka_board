@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Konfiguracja – PEKA Board</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="config-body">
 
@@ -19,7 +20,6 @@
 
     <!-- Lewa: wyszukiwanie -->
     <div class="cfg-left">
-
       <div class="cfg-section-title">1. Wyszukaj przystanek</div>
       <div class="cfg-search-row">
         <input type="text" id="inp-search" placeholder="Wpisz nazwę przystanku…"
@@ -27,32 +27,30 @@
         <span id="search-spinner" class="spinner hidden">⏳</span>
       </div>
 
-      <div class="cfg-section-title" style="margin-top:12px">Przystanki:</div>
+      <div class="cfg-section-title" style="margin-top:10px">Przystanki:</div>
       <div class="cfg-list-wrap">
         <ul id="list-stops" class="cfg-list"></ul>
       </div>
 
-      <div class="cfg-section-title" style="margin-top:12px">2. Wybierz słupek (bollard):</div>
-      <div class="cfg-list-wrap">
-        <ul id="list-bollards" class="cfg-list"></ul>
+      <div class="cfg-section-title" style="margin-top:10px">2. Wybierz słupek:</div>
+      <div class="cfg-list-wrap cfg-bollard-wrap">
+        <div id="list-bollards"></div>
       </div>
 
       <button onclick="addBollard()" class="btn-add">➕ Dodaj do tablicy</button>
     </div>
 
-    <!-- Środek: strzałka -->
+    <!-- Środek -->
     <div class="cfg-arrow">→</div>
 
     <!-- Prawa: wybrane bollardy -->
     <div class="cfg-right">
       <div class="cfg-section-title">
         3. Tablica
-        <span id="cfg-count" class="cfg-count">0 / 6</span>
+        <span id="cfg-count" class="cfg-count">0 / 6 słupków · 0 / 16 wierszy</span>
       </div>
 
-      <div class="cfg-list-wrap cfg-list-selected-wrap">
-        <ul id="list-selected" class="cfg-list cfg-list-selected"></ul>
-      </div>
+      <div class="cfg-selected-wrap" id="list-selected"></div>
 
       <div class="cfg-move-row">
         <button onclick="moveUp()" class="btn-move">⬆ Wyżej</button>
@@ -63,7 +61,6 @@
 
   </div>
 
-  <!-- Dolny pasek -->
   <div class="cfg-footer">
     <button onclick="saveConfig()" class="btn-save">✔ Zapisz i wróć do tablicy</button>
     <span id="cfg-msg" class="cfg-msg"></span>
@@ -71,16 +68,19 @@
 </div>
 
 <script>
-// ── Stan ──────────────────────────────────────────────────────────────────────
-let searchResults   = [];
-let bollardResults  = [];
-let selectedBollards = {{ current_config | safe }};
-let searchJob       = null;
-let selectedStop    = null;
-let selectedBollard = null;
-let selectedIdx     = -1;
+const MAX_BOLLARDS = 6;
+const MAX_ROWS     = 16;
 
-// ── Inicjalizacja ─────────────────────────────────────────────────────────────
+let searchResults  = [];
+let bollardResults = [];
+let selectedBollards = {{ current_config | safe }};
+let searchJob      = null;
+let selectedBollard = null;
+let selectedIdx    = -1;
+
+// Zapewnij że każdy bollard ma rows
+selectedBollards = selectedBollards.map(b => ({ ...b, rows: b.rows || 2 }));
+
 renderSelected();
 
 // ── Wyszukiwanie ──────────────────────────────────────────────────────────────
@@ -91,26 +91,38 @@ function onSearchType() {
 
 async function doSearch() {
   const q = document.getElementById("inp-search").value.trim();
-  if (q.length < 2) { clearList("list-stops"); return; }
+  if (q.length < 2) {
+    document.getElementById("list-stops").innerHTML = "";
+    return;
+  }
   document.getElementById("search-spinner").classList.remove("hidden");
   try {
     const r = await fetch(`/api/stops/search?q=${encodeURIComponent(q)}`);
     searchResults = await r.json();
-    renderList("list-stops", searchResults.map(s => s.name), onStopClick);
+    renderStops(searchResults);
   } finally {
     document.getElementById("search-spinner").classList.add("hidden");
   }
 }
 
+function renderStops(stops) {
+  const ul = document.getElementById("list-stops");
+  ul.innerHTML = "";
+  if (!stops.length) { ul.innerHTML = "<li class='cfg-empty'>—</li>"; return; }
+  stops.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.textContent = s.name;
+    li.onclick = () => { highlightList("list-stops", i); onStopClick(i); };
+    ul.appendChild(li);
+  });
+}
+
 async function onStopClick(idx) {
-  selectedStop = searchResults[idx];
-  highlightList("list-stops", idx);
-  clearList("list-bollards");
-  bollardResults = [];
   selectedBollard = null;
+  document.getElementById("list-bollards").innerHTML = "";
   document.getElementById("search-spinner").classList.remove("hidden");
   try {
-    const r = await fetch(`/api/stops/bollards?stop_name=${encodeURIComponent(selectedStop.name)}`);
+    const r = await fetch(`/api/stops/bollards?stop_name=${encodeURIComponent(searchResults[idx].name)}`);
     bollardResults = await r.json();
     renderBollards(bollardResults);
   } finally {
@@ -119,49 +131,52 @@ async function onStopClick(idx) {
 }
 
 function renderBollards(bollards) {
-  const ul = document.getElementById("list-bollards");
-  ul.innerHTML = "";
+  const wrap = document.getElementById("list-bollards");
+  wrap.innerHTML = "";
   if (!bollards.length) {
-    ul.innerHTML = "<li class='cfg-empty'>—</li>"; return;
+    wrap.innerHTML = "<div class='cfg-empty'>—</div>"; return;
   }
+
   bollards.forEach((b, i) => {
-    const li = document.createElement("li");
-    li.className = "boll-item";
+    const div = document.createElement("div");
+    div.className = "boll-card";
 
+    // Linia + kierunek per linia
+    // b.lines = lista numerów linii, b.direction = główny kierunek
+    // Pobieramy szczegóły kierunków z API lub pokazujemy co mamy
     const linesHtml = b.lines && b.lines.length
-      ? b.lines.map(l => `<span class="boll-line-badge">${l}</span>`).join("")
-      : "<span style='color:var(--dim)'>brak danych</span>";
+      ? b.lines.map(l => `<span class="boll-line-badge">${l}</span>`).join(" ")
+      : "";
 
-    li.innerHTML = `
-      <span>${b.symbol} &nbsp;→&nbsp; ${b.direction}</span>
-      <div class="boll-tooltip">
-        <div class="boll-lines-title">Linie przez ten słupek:</div>
-        ${linesHtml}
-      </div>`;
+    div.innerHTML = `
+      <div class="boll-card-header">
+        <span class="boll-card-symbol">${b.symbol}</span>
+        <span class="boll-card-dir">→ ${b.direction}</span>
+      </div>
+      <div class="boll-card-lines">${linesHtml}</div>`;
 
-    li.onclick = () => {
+    div.onclick = () => {
       selectedBollard = bollards[i];
-      document.querySelectorAll("#list-bollards .boll-item")
-        .forEach(el => el.classList.remove("active"));
-      li.classList.add("active");
+      document.querySelectorAll(".boll-card").forEach(c => c.classList.remove("active"));
+      div.classList.add("active");
     };
-    ul.appendChild(li);
+    wrap.appendChild(div);
   });
-}
-
-function onBollardClick(idx) {
-  selectedBollard = bollardResults[idx];
-  highlightList("list-bollards", idx);
 }
 
 // ── Zarządzanie listą ─────────────────────────────────────────────────────────
 function addBollard() {
   if (!selectedBollard) { showMsg("Zaznacz słupek z listy."); return; }
-  if (selectedBollards.length >= 6) { showMsg("Maksymalnie 6 słupków."); return; }
+  if (selectedBollards.length >= MAX_BOLLARDS) {
+    showMsg(`Maksymalnie ${MAX_BOLLARDS} słupków.`); return;
+  }
   if (selectedBollards.some(b => b.symbol === selectedBollard.symbol)) {
     showMsg("Ten słupek jest już na liście."); return;
   }
-  selectedBollards.push(selectedBollard);
+  const totalRows = selectedBollards.reduce((s, b) => s + (b.rows || 2), 0);
+  const newRows = Math.min(2, MAX_ROWS - totalRows);
+  if (newRows < 1) { showMsg("Osiągnięto limit 16 wierszy."); return; }
+  selectedBollards.push({ ...selectedBollard, rows: newRows });
   renderSelected();
 }
 
@@ -178,7 +193,7 @@ function moveUp() {
   [selectedBollards[selectedIdx], selectedBollards[selectedIdx-1]];
   selectedIdx--;
   renderSelected();
-  highlightList("list-selected", selectedIdx);
+  highlightSelected(selectedIdx);
 }
 
 function moveDown() {
@@ -187,56 +202,77 @@ function moveDown() {
   [selectedBollards[selectedIdx+1], selectedBollards[selectedIdx]];
   selectedIdx++;
   renderSelected();
-  highlightList("list-selected", selectedIdx);
+  highlightSelected(selectedIdx);
+}
+
+function changeRows(idx, delta) {
+  const totalRows = selectedBollards.reduce((s, b) => s + (b.rows || 2), 0);
+  const cur = selectedBollards[idx].rows || 2;
+  const newVal = cur + delta;
+  if (newVal < 1 || newVal > 5) return;
+  if (delta > 0 && totalRows >= MAX_ROWS) {
+    showMsg("Osiągnięto limit 16 wierszy."); return;
+  }
+  selectedBollards[idx].rows = newVal;
+  renderSelected();
+  highlightSelected(idx);
 }
 
 function renderSelected() {
-  renderList("list-selected",
-    selectedBollards.map((b, i) => `${i+1}. ${b.label}  (${b.symbol})`),
-    (idx) => { selectedIdx = idx; highlightList("list-selected", idx); }
-  );
+  const wrap = document.getElementById("list-selected");
+  wrap.innerHTML = "";
+  const totalRows = selectedBollards.reduce((s, b) => s + (b.rows || 2), 0);
+
+  selectedBollards.forEach((b, i) => {
+    const card = document.createElement("div");
+    card.className = "sel-card" + (i === selectedIdx ? " active" : "");
+    card.onclick = () => { selectedIdx = i; highlightSelected(i); };
+
+    card.innerHTML = `
+      <div class="sel-card-main">
+        <span class="sel-card-num">${i+1}.</span>
+        <span class="sel-card-label">${b.label}</span>
+        <span class="sel-card-symbol">${b.symbol}</span>
+      </div>
+      <div class="sel-card-rows">
+        <button class="btn-rows" onclick="event.stopPropagation();changeRows(${i},-1)">−</button>
+        <span class="rows-val">${b.rows || 2} ${(b.rows||2)===1?'wiersz':((b.rows||2)<5?'wiersze':'wierszy')}</span>
+        <button class="btn-rows" onclick="event.stopPropagation();changeRows(${i},+1)">+</button>
+      </div>`;
+
+    wrap.appendChild(card);
+  });
+
+  // Licznik
   const cnt = document.getElementById("cfg-count");
-  cnt.textContent = `${selectedBollards.length} / 6`;
-  cnt.style.color = selectedBollards.length >= 6 ? "#e74c3c" : "#f5a623";
+  const rowsColor = totalRows >= MAX_ROWS ? "#e74c3c" : "#f5a623";
+  const bollColor = selectedBollards.length >= MAX_BOLLARDS ? "#e74c3c" : "#f5a623";
+  cnt.innerHTML = `<span style="color:${bollColor}">${selectedBollards.length}/${MAX_BOLLARDS} słupków</span>
+    · <span style="color:${rowsColor}">${totalRows}/${MAX_ROWS} wierszy</span>`;
+}
+
+function highlightSelected(idx) {
+  document.querySelectorAll(".sel-card").forEach((c, i) => {
+    c.classList.toggle("active", i === idx);
+  });
 }
 
 // ── Zapis ─────────────────────────────────────────────────────────────────────
 async function saveConfig() {
-  if (selectedBollards.length === 0) { showMsg("Dodaj co najmniej jeden słupek."); return; }
+  if (!selectedBollards.length) { showMsg("Dodaj co najmniej jeden słupek."); return; }
   const r = await fetch("/api/config", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(selectedBollards),
   });
-  if (r.ok) {
-    window.location.href = "/";
-  } else {
-    showMsg("Błąd zapisu konfiguracji.");
-  }
+  if (r.ok) window.location.href = "/";
+  else showMsg("Błąd zapisu.");
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function renderList(id, items, onClick) {
-  const ul = document.getElementById(id);
-  ul.innerHTML = "";
-  if (!items.length) {
-    ul.innerHTML = "<li class='cfg-empty'>—</li>"; return;
-  }
-  items.forEach((text, i) => {
-    const li = document.createElement("li");
-    li.textContent = text;
-    li.onclick = () => onClick(i);
-    ul.appendChild(li);
-  });
-}
-
-function clearList(id) {
-  document.getElementById(id).innerHTML = "";
-}
-
 function highlightList(id, idx) {
-  const lis = document.querySelectorAll(`#${id} li`);
-  lis.forEach((li, i) => li.classList.toggle("active", i === idx));
+  document.querySelectorAll(`#${id} li`).forEach((li, i) =>
+    li.classList.toggle("active", i === idx));
 }
 
 function showMsg(msg) {
