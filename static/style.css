@@ -76,6 +76,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  align-items: stretch;
 }
 
 .tile-bollard {
@@ -83,6 +84,7 @@ html, body {
   border: 1px solid var(--sep);
   border-radius: 10px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .bollard-header {
