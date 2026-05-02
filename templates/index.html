@@ -14,10 +14,18 @@
   <!-- ── KOLUMNA LEWA ──────────────────────────────────────────── -->
   <div class="col-left">
 
-    <!-- Zegar -->
+    <!-- Zegar + Pogoda -->
     <div class="tile tile-clock">
       <div class="clock-time" id="clock-time">--:--:--</div>
       <div class="clock-date" id="clock-date">-----------</div>
+      <div class="weather-current" id="weather-current">
+        <div class="weather-main">
+          <i class="fa-solid fa-sun weather-icon" id="w-icon"></i>
+          <span class="weather-temp" id="w-temp">--°</span>
+        </div>
+        <div class="weather-details" id="w-details"></div>
+      </div>
+      <div class="weather-forecast" id="weather-forecast"></div>
       <div class="clock-status" id="clock-status"></div>
     </div>
 

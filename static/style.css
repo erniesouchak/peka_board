@@ -788,3 +788,90 @@ body.config-body { overflow: auto; height: auto; }
   font-size: 0.82rem;
   text-align: center;
 }
+
+/* ── Pogoda ───────────────────────────────────────────────────────────────── */
+.weather-current {
+  width: 100%;
+  margin-top: 10px;
+  border-top: 1px solid var(--sep);
+  padding-top: 10px;
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.weather-icon {
+  font-size: 2rem;
+  color: var(--gold);
+}
+
+.weather-temp {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.weather-details {
+  font-size: 0.75rem;
+  color: var(--dim);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.weather-forecast {
+  width: 100%;
+  margin-top: 10px;
+  border-top: 1px solid var(--sep);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forecast-day {
+  display: grid;
+  grid-template-columns: 36px 1fr 24px 56px;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  font-size: 0.78rem;
+}
+
+.forecast-day-name {
+  color: var(--dim);
+  font-weight: bold;
+}
+
+.forecast-desc {
+  color: var(--text);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forecast-icon {
+  color: var(--gold);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.forecast-temps {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.t-max { color: var(--text); font-weight: bold; }
+.t-min { color: var(--dim); }
+
+/* Jasny motyw */
+[data-theme="light"] .weather-icon  { color: var(--gold); }
+[data-theme="light"] .forecast-icon { color: var(--gold); }

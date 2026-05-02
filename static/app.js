@@ -280,3 +280,51 @@ async function fetchPhoto() {
 // Uruchom przy starcie i co 15 minut
 fetchPhoto();
 setInterval(fetchPhoto, 15 * 60 * 1000);
+
+// ── Pogoda ────────────────────────────────────────────────────────────────────
+
+async function fetchWeather() {
+  try {
+    const r = await fetch("/api/weather");
+    if (!r.ok) return;
+    const data = await r.json();
+    renderWeather(data);
+  } catch(e) {
+    // Cisza gdy brak połączenia
+  }
+}
+
+function renderWeather(data) {
+  const c = data.current;
+  if (!c) return;
+
+  // Ikona i temperatura
+  document.getElementById("w-icon").className = `fa-solid ${c.icon} weather-icon`;
+  document.getElementById("w-temp").textContent = `${c.temp}°C`;
+
+  // Szczegóły
+  document.getElementById("w-details").innerHTML = `
+    ${c.description}<br>
+    Odczuwalna ${c.feels_like}°C &nbsp;·&nbsp; Wilgotność ${c.humidity}%<br>
+    Wiatr ${c.wind_speed} m/s ${c.wind_dir}
+    ${c.precip > 0 ? `&nbsp;·&nbsp; Opady ${c.precip} mm` : ""}
+  `;
+
+  // Prognoza 3-dniowa
+  const fc = data.forecast || [];
+  document.getElementById("weather-forecast").innerHTML = fc.map(d => `
+    <div class="forecast-day">
+      <span class="forecast-day-name">${d.day}</span>
+      <span class="forecast-desc">${d.description}</span>
+      <span class="forecast-icon"><i class="fa-solid ${d.icon}"></i></span>
+      <span class="forecast-temps">
+        <span class="t-max">${d.t_max}°</span>
+        <span class="t-min"> / ${d.t_min}°</span>
+      </span>
+    </div>
+  `).join("");
+}
+
+// Uruchom przy starcie i odświeżaj co 30 minut
+fetchWeather();
+setInterval(fetchWeather, 30 * 60 * 1000);

@@ -31,6 +31,7 @@ from gtfs_static import GTFSStatic
 from gtfs_rt import GTFSRealtime
 from waste_schedule import WasteSchedule
 from synology_photos import SynologyPhotos
+from weather import Weather
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ gtfs_static    = GTFSStatic()
 gtfs_rt        = GTFSRealtime()
 waste_schedule = WasteSchedule()
 synology       = SynologyPhotos()
+weather        = Weather()
 
 
 # ── Konfiguracja ──────────────────────────────────────────────────────────────
@@ -81,8 +83,9 @@ async def startup():
         log.error("Błąd ładowania harmonogramu wywozów: %s", e)
     try:
         synology.load_config()
+        weather.load_config()
     except Exception as e:
-        log.error("Błąd ładowania konfiguracji Synology: %s", e)
+        log.error("Błąd ładowania konfiguracji: %s", e)
     # Uruchom zadanie sprawdzające ważność paczki co godzinę
     asyncio.create_task(_gtfs_watcher())
 
@@ -247,6 +250,15 @@ async def api_departures():
         })
 
     return result
+
+
+@app.get("/api/weather")
+async def api_weather():
+    """Zwróć aktualną pogodę i prognozę 3-dniową."""
+    try:
+        return weather.get_all()
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/photo/random")
