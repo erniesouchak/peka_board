@@ -61,7 +61,7 @@ class SynologyPhotos:
         """Pobierz sharing_sid dla publicznego albumu."""
         try:
             r = requests.post(
-                f"{self._url}/photo/webapi/entry.cgi",
+                f"{self._url}/webapi/entry.cgi",
                 data={
                     "api":        "SYNO.Core.Sharing.Login",
                     "method":     "login",
@@ -97,7 +97,7 @@ class SynologyPhotos:
 
             while True:
                 r = requests.post(
-                    f"{self._url}/photo/mo/sharing/webapi/entry.cgi",
+                    f"{self._url}/mo/sharing/webapi/entry.cgi",
                     headers={
                         "x-syno-sharing": self._passphrase,
                         "Cookie": f"sharing_sid={self._sharing_sid}",
@@ -169,7 +169,7 @@ class SynologyPhotos:
                 return None
         try:
             r = requests.get(
-                f"{self._url}/photo/mo/sharing/webapi/entry.cgi",
+                f"{self._url}/mo/sharing/webapi/entry.cgi",
                 headers={
                     "x-syno-sharing": self._passphrase,
                     "Cookie": f"sharing_sid={self._sharing_sid}",
@@ -193,7 +193,7 @@ class SynologyPhotos:
             self._sharing_sid = ""
             if self._get_sharing_sid():
                 r2 = requests.get(
-                    f"{self._url}/photo/mo/sharing/webapi/entry.cgi",
+                    f"{self._url}/mo/sharing/webapi/entry.cgi",
                     headers={
                         "x-syno-sharing": self._passphrase,
                         "Cookie": f"sharing_sid={self._sharing_sid}",
