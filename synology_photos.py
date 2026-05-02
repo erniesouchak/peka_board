@@ -38,6 +38,7 @@ class SynologyPhotos:
         self._username: str = ""
         self._password: str = ""
         self._album:    str = ""
+        self._album_id: int = 0
         self._token:    str = ""
         self._photo_ids: list[int] = []
         self._last_fetch: float = 0.0
@@ -59,6 +60,7 @@ class SynologyPhotos:
             self._username = syn.get("username", "")
             self._password = syn.get("password", "")
             self._album    = syn.get("album", "")
+            self._album_id = int(syn.get("album_id", 0))
             self._configured = bool(self._url and self._username and self._album)
             if self._configured:
                 log.info("Synology Photos skonfigurowany: %s / album: %s",
@@ -151,7 +153,12 @@ class SynologyPhotos:
         if not self._ensure_token():
             return
 
-        album_id = self._get_album_id()
+        # Użyj album_id z konfiguracji jeśli podany, inaczej szukaj po nazwie
+        if self._album_id:
+            album_id = self._album_id
+        else:
+            album_id = self._get_album_id()
+
         if not album_id:
             return
 
@@ -172,6 +179,7 @@ class SynologyPhotos:
                         "limit":      limit,
                         "sort_by":    "filename",
                         "sort_direction": "asc",
+                        "additional": '["thumbnail"]',
                         "_sid":       self._token,
                     },
                     timeout=15,
@@ -182,8 +190,13 @@ class SynologyPhotos:
                     break
 
                 items = data["data"].get("list", [])
-                photo_ids.extend(item["id"] for item in items
-                                 if item.get("type") == "photo")
+                for item in items:
+                    if item.get("type") == "photo":
+                        photo_ids.append({
+                            "id":        item["id"],
+                            "cache_key": item.get("additional", {}).get(
+                                "thumbnail", {}).get("cache_key", ""),
+                        })
                 if len(items) < limit:
                     break
                 offset += limit
@@ -197,18 +210,19 @@ class SynologyPhotos:
 
     # ── URL zdjęcia ───────────────────────────────────────────────────────────
 
-    def get_photo_url(self, photo_id: int, size: str = "xl") -> str:
+    def get_photo_url(self, photo_id: int, cache_key: str = "", size: str = "xl") -> str:
         """Zwróć URL do miniatury zdjęcia."""
-        return (
-            f"{self._url}/webapi/entry.cgi"
+        params = (
             f"?api=SYNO.Foto.Thumbnail"
             f"&version=1"
             f"&method=get"
             f"&id={photo_id}"
             f"&type=unit"
             f"&size={size}"
+            f"&cache_key={cache_key}"
             f"&_sid={self._token}"
         )
+        return f"{self._url}/webapi/entry.cgi{params}"
 
     # ── Publiczne API ─────────────────────────────────────────────────────────
 
@@ -227,34 +241,37 @@ class SynologyPhotos:
         if not self._photo_ids:
             return None
 
-        photo_id = random.choice(self._photo_ids)
-        url = self.get_photo_url(photo_id)
+        photo = random.choice(self._photo_ids)
+        photo_id  = photo["id"]
+        cache_key = photo.get("cache_key", "")
+        url = self.get_photo_url(photo_id, cache_key)
 
         return {
             "photo_id":  photo_id,
+            "cache_key": cache_key,
             "url":       url,
-            "proxy_url": f"/api/photo/{photo_id}",
+            "proxy_url": f"/api/photo/{photo_id}?cache_key={cache_key}",
         }
 
-    def fetch_photo_bytes(self, photo_id: int) -> Optional[bytes]:
+    def fetch_photo_bytes(self, photo_id: int, cache_key: str = "") -> Optional[bytes]:
         """Pobierz bajty zdjęcia (przez proxy żeby nie ujawniać tokenu)."""
         if not self._ensure_token():
             return None
         try:
             r = requests.get(
-                self.get_photo_url(photo_id),
+                self.get_photo_url(photo_id, cache_key),
                 timeout=15,
                 verify=False,
             )
             if r.status_code == 200:
                 return r.content
-            # Token wygasł — odśwież
             if r.status_code in (401, 403):
                 self._token = ""
                 SESSION_CACHE.unlink(missing_ok=True)
                 if self._login():
-                    r2 = requests.get(self.get_photo_url(photo_id),
-                                      timeout=15, verify=False)
+                    r2 = requests.get(
+                        self.get_photo_url(photo_id, cache_key),
+                        timeout=15, verify=False)
                     if r2.status_code == 200:
                         return r2.content
         except Exception as e:
