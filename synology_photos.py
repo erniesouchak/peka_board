@@ -192,30 +192,34 @@ class SynologyPhotos:
             log.debug("Odpowiedź Synology: %d %s", r.status_code, r.headers.get("content-type",""))
             if r.status_code == 200 and r.headers.get("content-type", "").startswith("image"):
                 return r.content
-            # Sesja wygasła — odśwież
-            self._sharing_sid = ""
-            if self._get_sharing_sid():
-                r2 = requests.get(
-                    f"{self._url}/mo/sharing/webapi/entry.cgi",
-                    headers={
-                        "x-syno-sharing": self._passphrase,
-                        "Cookie": f"sharing_sid={self._sharing_sid}",
-                    },
-                    params={
-                        "api":        "SYNO.Foto.Thumbnail",
-                        "method":     "get",
-                        "version":    "1",
-                        "id":         photo_id,
-                        "cache_key":  cache_key,
-                        "type":       "unit",
-                        "size":       "xl",
-                        "passphrase": self._passphrase,
-                    },
-                    timeout=15,
-                    verify=False,
-                )
-                if r2.status_code == 200 and r2.headers.get("content-type", "").startswith("image"):
-                    return r2.content
+            # Loguj co zwrócił Synology zamiast ślepo resetować sid
+            log.warning("Synology nieoczekiwana odpowiedź: %d %s %s",
+                        r.status_code, r.headers.get("content-type",""), r.content[:200])
+            # Spróbuj odświeżyć sid tylko gdy 401/403
+            if r.status_code in (401, 403):
+                self._sharing_sid = ""
+                if self._get_sharing_sid():
+                    r2 = requests.get(
+                        f"{self._url}/mo/sharing/webapi/entry.cgi",
+                        headers={
+                            "x-syno-sharing": self._passphrase,
+                            "Cookie": f"sharing_sid={self._sharing_sid}",
+                        },
+                        params={
+                            "api":        "SYNO.Foto.Thumbnail",
+                            "method":     "get",
+                            "version":    "1",
+                            "id":         photo_id,
+                            "cache_key":  cache_key,
+                            "type":       "unit",
+                            "size":       "xl",
+                            "passphrase": self._passphrase,
+                        },
+                        timeout=15,
+                        verify=False,
+                    )
+                    if r2.status_code == 200 and r2.headers.get("content-type", "").startswith("image"):
+                        return r2.content
         except Exception as e:
             log.warning("Synology Photos: błąd pobierania zdjęcia %d: %s", photo_id, e)
         return None
