@@ -14,23 +14,15 @@
   <!-- ── KOLUMNA LEWA ──────────────────────────────────────────── -->
   <div class="col-left">
 
-    <!-- Zegar + Pogoda -->
+    <!-- Zegar -->
     <div class="tile tile-clock">
       <div class="clock-time" id="clock-time">--:--:--</div>
       <div class="clock-date" id="clock-date">-----------</div>
-      <div class="weather-current" id="weather-current">
-        <div class="weather-main">
-          <i class="fa-solid fa-sun weather-icon" id="w-icon"></i>
-          <span class="weather-temp" id="w-temp">--°</span>
-        </div>
-        <div class="weather-details" id="w-details"></div>
-      </div>
-      <div class="weather-forecast" id="weather-forecast"></div>
       <div class="clock-status" id="clock-status"></div>
     </div>
 
     <!-- Kalendarz -->
-    <div class="tile tile-calendar" id="tile-calendar">
+    <div class="tile tile-calendar">
       <div class="tile-header">
         <i class="fa-solid fa-calendar-days"></i> Kalendarz
       </div>
@@ -44,18 +36,25 @@
   <!-- ── KOLUMNA ŚRODKOWA ──────────────────────────────────────── -->
   <div class="col-mid">
 
-    <!-- Home Assistant (zarezerwowany) -->
-    <div class="tile tile-ha" id="tile-ha">
+    <!-- Pogoda (przeniesiona z kafelka zegara) -->
+    <div class="tile tile-weather">
       <div class="tile-header">
-        <i class="fa-solid fa-house"></i> Dom
+        <i class="fa-solid fa-cloud-sun"></i> Pogoda
       </div>
-      <div class="ha-body" id="ha-body">
-        <div class="cal-placeholder">Home Assistant</div>
+      <div class="weather-tile-body">
+        <div class="weather-current" id="weather-current">
+          <div class="weather-main">
+            <i class="fa-solid fa-sun weather-icon" id="w-icon"></i>
+            <span class="weather-temp" id="w-temp">--°</span>
+          </div>
+          <div class="weather-details" id="w-details"></div>
+        </div>
+        <div class="weather-forecast" id="weather-forecast"></div>
       </div>
     </div>
 
     <!-- Zdjęcie -->
-    <div class="tile tile-photo" id="tile-photo">
+    <div class="tile tile-photo">
       <div class="photo-body" id="photo-body">
         <div class="cal-placeholder">
           <i class="fa-solid fa-image" style="font-size:2rem;opacity:0.3"></i>
@@ -64,7 +63,7 @@
     </div>
 
     <!-- Wywóz odpadów -->
-    <div class="tile tile-waste" id="tile-waste">
+    <div class="tile tile-waste">
       <div class="tile-header">
         <i class="fa-solid fa-trash"></i> Wywóz odpadów
       </div>

@@ -32,6 +32,7 @@ from gtfs_rt import GTFSRealtime
 from waste_schedule import WasteSchedule
 from synology_photos import SynologyPhotos
 from weather import Weather
+from calendar_ical import CalendarICal
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ gtfs_rt        = GTFSRealtime()
 waste_schedule = WasteSchedule()
 synology       = SynologyPhotos()
 weather        = Weather()
+calendar       = CalendarICal()
 
 
 # ── Konfiguracja ──────────────────────────────────────────────────────────────
@@ -84,6 +86,7 @@ async def startup():
     try:
         synology.load_config()
         weather.load_config()
+        calendar.load_config()
     except Exception as e:
         log.error("Błąd ładowania konfiguracji: %s", e)
     # Uruchom zadanie sprawdzające ważność paczki co godzinę
@@ -250,6 +253,15 @@ async def api_departures():
         })
 
     return result
+
+
+@app.get("/api/calendar")
+async def api_calendar():
+    """Zwróć nadchodzące wydarzenia z kalendarza iCal."""
+    try:
+        return calendar.get_upcoming(days_ahead=14)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/weather")

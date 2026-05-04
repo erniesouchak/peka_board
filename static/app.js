@@ -328,3 +328,46 @@ function renderWeather(data) {
 // Uruchom przy starcie i odświeżaj co 30 minut
 fetchWeather();
 setInterval(fetchWeather, 30 * 60 * 1000);
+
+// ── Kalendarz ─────────────────────────────────────────────────────────────────
+
+async function fetchCalendar() {
+  try {
+    const r = await fetch("/api/calendar");
+    if (!r.ok) return;
+    const data = await r.json();
+    renderCalendar(data);
+  } catch(e) {
+    document.getElementById("calendar-body").innerHTML =
+      "<div class='cal-placeholder'>Błąd ładowania</div>";
+  }
+}
+
+function renderCalendar(events) {
+  const el = document.getElementById("calendar-body");
+  if (!events || !events.length) {
+    el.innerHTML = "<div class='cal-placeholder'>Brak nadchodzących wydarzeń</div>";
+    return;
+  }
+
+  el.innerHTML = events.map(ev => {
+    const isToday    = ev.days_until === 0;
+    const isTomorrow = ev.days_until === 1;
+    const isSoon     = ev.days_until >= 2 && ev.days_until <= 3;
+    const labelClass = isToday ? "today" : isTomorrow ? "tomorrow" : isSoon ? "soon" : "";
+    const time = ev.all_day ? "" : `<span class="cal-time">${ev.start_time}</span>`;
+
+    return `
+      <div class="cal-event ${isToday ? 'cal-today' : ''}">
+        <div class="cal-date-label ${labelClass}">${ev.date_label}</div>
+        <div class="cal-event-main">
+          ${time}
+          <span class="cal-summary">${esc(ev.summary)}</span>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// Uruchom przy starcie i odświeżaj co godzinę
+fetchCalendar();
+setInterval(fetchCalendar, 3600000);

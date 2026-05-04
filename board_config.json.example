@@ -2,5 +2,12 @@
   "synology": {
     "url":        "http://192.168.1.100:5000",
     "passphrase": "TwojPassphrase"
+  },
+  "weather": {
+    "lat": 52.345,
+    "lon": 16.875
+  },
+  "calendar": {
+    "ical_url": "https://calendar.google.com/calendar/ical/TWOJ_URL/basic.ics"
   }
 }

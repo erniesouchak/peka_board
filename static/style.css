@@ -875,3 +875,80 @@ body.config-body { overflow: auto; height: auto; }
 /* Jasny motyw */
 [data-theme="light"] .weather-icon  { color: var(--gold); }
 [data-theme="light"] .forecast-icon { color: var(--gold); }
+
+/* ── Kafelek pogody (środkowa kolumna) ────────────────────────────────────── */
+.tile-weather {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.weather-tile-body {
+  padding: 10px;
+}
+
+/* Zegar bez pogody — mniejszy, kompaktowy */
+.tile-clock {
+  flex: 0 0 auto;
+  padding: 16px;
+}
+
+/* ── Kalendarz ────────────────────────────────────────────────────────────── */
+.tile-calendar {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sep) var(--bg2);
+}
+
+.cal-event {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--sep);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cal-event:last-child { border-bottom: none; }
+.cal-event.cal-today  { background: rgba(245,166,35,0.08); }
+
+.cal-date-label {
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cal-date-label.today    { color: var(--red);  }
+.cal-date-label.tomorrow { color: var(--gold); }
+.cal-date-label.soon     { color: var(--blue); }
+
+.cal-event-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.cal-time {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.cal-summary {
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+/* Jasny motyw */
+[data-theme="light"] .cal-event.cal-today { background: rgba(184,134,11,0.08); }
