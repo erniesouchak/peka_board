@@ -1004,38 +1004,34 @@ body.config-body { overflow: auto; height: auto; }
 .sb-attribution a:hover { opacity: 0.8; }
 
 /* ── Poprawki czytelności motywu ciemnego ─────────────────────────────────── */
-.tile-header {
-  color: #a0b0cc;
-}
+:root .tile-header                { color: #a0b0cc; }
+:root .bollard-symbol             { color: #6080aa; }
+:root .weather-details            { color: #a0b4cc; }
+:root .forecast-desc              { color: #a0b4cc; }
+:root .t-min                      { color: #7090aa; }
+:root .statusbar                  { color: #8899bb; }
+:root .dep-header .dep-grid span  { color: #6a7d99; }
+:root .dep-direction              { color: #c8d8ee; }
+:root .dep-current                { color: #7090aa; }
 
-.bollard-symbol {
-  color: #6080aa;
-}
+/* ── Poprawki czytelności motywu jasnego ──────────────────────────────────── */
+[data-theme="light"] .tile-header               { color: #3a2e00; }
+[data-theme="light"] .bollard-symbol            { color: #5a4a00; }
+[data-theme="light"] .weather-details           { color: #3a3020; }
+[data-theme="light"] .forecast-desc             { color: #3a3020; }
+[data-theme="light"] .t-min                     { color: #6a5a30; }
+[data-theme="light"] .statusbar                 { color: #5a5040; }
+[data-theme="light"] .dep-header .dep-grid span { color: #6a5a30; }
+[data-theme="light"] .dep-direction             { color: #1a1a1a; }
+[data-theme="light"] .dep-current               { color: #4a3a10; }
+[data-theme="light"] .dep-sched                 { color: #1a1a1a; }
+[data-theme="light"] .dep-minutes               { color: #1a1a1a; }
+[data-theme="light"] .dep-real                  { color: #3a3020; }
+[data-theme="light"] .cal-date-label            { color: #7a6a40; }
+[data-theme="light"] .cal-summary               { color: #1a1a1a; }
+[data-theme="light"] .waste-day-label           { color: #7a6a40; }
 
-.weather-details {
-  color: #a0b4cc;
-}
+/* Kalendarz — tło dzisiejszego */
+:root .cal-event.cal-today                    { background: rgba(245,166,35,0.12); border-left: 3px solid var(--gold); }
+[data-theme="light"] .cal-event.cal-today     { background: rgba(184,134,11,0.10); border-left: 3px solid var(--gold); }
 
-.forecast-desc {
-  color: #a0b4cc;
-}
-
-.t-min {
-  color: #7090aa;
-}
-
-.statusbar {
-  color: #8899bb;
-}
-
-.dep-header .dep-grid span {
-  color: #6a7d99;
-}
-
-.dep-direction {
-  color: #c8d8ee;
-}
-
-.dep-current {
-  color: #7090aa;
-}
