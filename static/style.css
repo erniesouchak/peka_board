@@ -978,3 +978,27 @@ body.config-body { overflow: auto; height: auto; }
   flex-direction: column;
   gap: 4px;
 }
+
+/* ── amCharts SVG ikony pogody ────────────────────────────────────────────── */
+.weather-icon-svg {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.forecast-icon-svg {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.sb-attribution {
+  font-size: 0.6rem;
+  color: var(--dim);
+  opacity: 0.6;
+}
+.sb-attribution a {
+  color: var(--dim);
+  text-decoration: none;
+}
+.sb-attribution a:hover { opacity: 0.8; }

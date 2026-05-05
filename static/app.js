@@ -298,8 +298,9 @@ function renderWeather(data) {
   const c = data.current;
   if (!c) return;
 
-  // Ikona i temperatura
-  document.getElementById("w-icon").className = `fa-solid ${c.icon} weather-icon`;
+  // Ikona SVG i temperatura
+  document.getElementById("w-icon").outerHTML =
+    `<img id="w-icon" src="/static/weather-icons/${c.icon}.svg" class="weather-icon-svg" alt="${c.description}">`;
   document.getElementById("w-temp").textContent = `${c.temp}°C`;
 
   // Szczegóły
@@ -316,7 +317,7 @@ function renderWeather(data) {
     <div class="forecast-day">
       <span class="forecast-day-name">${d.day}</span>
       <span class="forecast-desc">${d.description}</span>
-      <span class="forecast-icon"><i class="fa-solid ${d.icon}"></i></span>
+      <img src="/static/weather-icons/${d.icon}.svg" class="forecast-icon-svg" alt="${d.description}">
       <span class="forecast-temps">
         <span class="t-max">${d.t_max}°</span>
         <span class="t-min"> / ${d.t_min}°</span>

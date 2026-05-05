@@ -55,7 +55,7 @@
         <div class="weather-split">
           <div class="weather-left">
             <div class="weather-main">
-              <i class="fa-solid fa-sun weather-icon" id="w-icon"></i>
+              <img id="w-icon" src="/static/weather-icons/day.svg" class="weather-icon-svg" alt="Pogoda">
               <span class="weather-temp" id="w-temp">--°</span>
             </div>
             <div class="weather-details" id="w-details"></div>
@@ -88,6 +88,7 @@
   <span id="sb-gtfs">GTFS: ładowanie…</span>
   <span id="sb-rt">RT: —</span>
   <span id="sb-refresh">Odświeżanie…</span>
+  <span class="sb-attribution">Weather icons © <a href="https://www.amcharts.com" target="_blank">amCharts</a></span>
   <button onclick="fetchDepartures()" class="btn-refresh">⟳ Odśwież</button>
   <a href="/config-page" class="btn-config">⚙ Konfiguracja</a>
   {% if theme == "dark" %}

@@ -28,32 +28,32 @@ WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 CACHE_PATH  = Path("weather_cache.json")
 CACHE_TTL   = 1800  # 30 minut
 
-# Kody WMO → opis i ikona FA
+# Kody WMO → opis i plik SVG (amCharts animated icons)
 WMO_CODES = {
-    0:  ("Bezchmurnie",      "fa-sun"),
-    1:  ("Przeważnie pogodnie", "fa-sun"),
-    2:  ("Częściowe zachmurzenie", "fa-cloud-sun"),
-    3:  ("Zachmurzenie",     "fa-cloud"),
-    45: ("Mgła",             "fa-smog"),
-    48: ("Mgła oszroniona",  "fa-smog"),
-    51: ("Mżawka lekka",     "fa-cloud-drizzle"),
-    53: ("Mżawka",           "fa-cloud-drizzle"),
-    55: ("Mżawka gęsta",     "fa-cloud-drizzle"),
-    61: ("Deszcz lekki",     "fa-cloud-rain"),
-    63: ("Deszcz",           "fa-cloud-rain"),
-    65: ("Deszcz ulewny",    "fa-cloud-showers-heavy"),
-    71: ("Śnieg lekki",      "fa-snowflake"),
-    73: ("Śnieg",            "fa-snowflake"),
-    75: ("Śnieg gęsty",      "fa-snowflake"),
-    77: ("Ziarna śniegu",    "fa-snowflake"),
-    80: ("Przelotny deszcz", "fa-cloud-rain"),
-    81: ("Deszcz przelotny", "fa-cloud-showers-heavy"),
-    82: ("Burza z deszczem", "fa-cloud-showers-heavy"),
-    85: ("Opady śniegu",     "fa-snowflake"),
-    86: ("Obfite opady śniegu", "fa-snowflake"),
-    95: ("Burza",            "fa-bolt"),
-    96: ("Burza z gradem",   "fa-bolt"),
-    99: ("Burza z gradem",   "fa-bolt"),
+    0:  ("Bezchmurnie",           "day",          "night"),
+    1:  ("Przeważnie pogodnie",   "cloudy-day-1", "cloudy-night-1"),
+    2:  ("Częściowe zachmurzenie","cloudy-day-2", "cloudy-night-2"),
+    3:  ("Zachmurzenie",          "cloudy",       "cloudy"),
+    45: ("Mgła",                  "cloudy-day-3", "cloudy-night-3"),
+    48: ("Mgła oszroniona",       "cloudy-day-3", "cloudy-night-3"),
+    51: ("Mżawka lekka",         "rainy-1",      "rainy-1"),
+    53: ("Mżawka",               "rainy-2",      "rainy-2"),
+    55: ("Mżawka gęsta",         "rainy-3",      "rainy-3"),
+    61: ("Deszcz lekki",         "rainy-1",      "rainy-1"),
+    63: ("Deszcz",               "rainy-4",      "rainy-4"),
+    65: ("Deszcz ulewny",        "rainy-5",      "rainy-5"),
+    71: ("Śnieg lekki",          "snowy-1",      "snowy-1"),
+    73: ("Śnieg",                "snowy-3",      "snowy-3"),
+    75: ("Śnieg gęsty",          "snowy-5",      "snowy-5"),
+    77: ("Ziarna śniegu",        "snowy-2",      "snowy-2"),
+    80: ("Przelotny deszcz",     "rainy-3",      "rainy-3"),
+    81: ("Deszcz przelotny",     "rainy-5",      "rainy-5"),
+    82: ("Deszcz ulewny",        "rainy-6",      "rainy-6"),
+    85: ("Opady śniegu",         "snowy-4",      "snowy-4"),
+    86: ("Obfite śniegu",        "snowy-6",      "snowy-6"),
+    95: ("Burza",                "thunder",      "thunder"),
+    96: ("Burza z gradem",       "thunder",      "thunder"),
+    99: ("Burza z gradem",       "thunder",      "thunder"),
 }
 
 DAYS_PL = ["Niedz.", "Pon.", "Wt.", "Śr.", "Czw.", "Pt.", "Sob."]
@@ -145,15 +145,10 @@ class Weather:
 
         c = self._data["current"]
         code = c.get("weather_code", 0)
-        desc, icon = WMO_CODES.get(code, ("Nieznana", "fa-question"))
+        entry = WMO_CODES.get(code, ("Nieznana", "cloudy", "cloudy"))
+        desc, icon_day, icon_night = entry
         is_day = c.get("is_day", 1)
-
-        # W nocy słońce → księżyc
-        if code == 0 and not is_day:
-            icon = "fa-moon"
-        elif code == 1 and not is_day:
-            icon = "fa-cloud-moon"
-
+        icon = icon_day if is_day else icon_night
         wind_dir = self._wind_direction(c.get("wind_direction_10m", 0))
 
         return {
@@ -186,7 +181,8 @@ class Weather:
         # Pomiń pierwszy dzień (dziś) — zacznij od jutra
         for i in range(1, min(days + 1, len(dates))):
             code = codes[i] if i < len(codes) else 0
-            desc, icon = WMO_CODES.get(code, ("Nieznana", "fa-question"))
+            entry = WMO_CODES.get(code, ("Nieznana", "cloudy", "cloudy"))
+            desc, icon_day, _ = entry  # prognoza zawsze ikona dzienna
             try:
                 dt = datetime.strptime(dates[i], "%Y-%m-%d")
                 day_name = DAYS_PL[dt.weekday()]  # pon-nie = 0-6, ale weekday() 0=pon
@@ -205,7 +201,7 @@ class Weather:
                 "precip":     round(precip[i], 1) if i < len(precip) else 0,
                 "precip_prob": round(precip_prob[i]) if i < len(precip_prob) else 0,
                 "description": desc,
-                "icon":        icon,
+                "icon":        icon_day,
             })
 
         return result
