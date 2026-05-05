@@ -181,9 +181,18 @@ class CalendarICal:
                 dt = datetime.strptime(val, "%Y%m%d")
                 return dt, True
             elif "T" in val:
-                # Format: 20260506T120000 lub 20260506T120000Z
-                val_clean = val.rstrip("Z")
-                dt = datetime.strptime(val_clean[:15], "%Y%m%dT%H%M%S")
+                if val.endswith("Z"):
+                    # UTC — konwertuj na czas lokalny (Europe/Warsaw = UTC+1/+2)
+                    val_clean = val[:-1]
+                    dt_utc = datetime.strptime(val_clean[:15], "%Y%m%dT%H%M%S")
+                    # Prosta konwersja: sprawdź czy czas letni (marzec-październik)
+                    month = dt_utc.month
+                    offset = 2 if 3 <= month <= 10 else 1
+                    dt = dt_utc + timedelta(hours=offset)
+                else:
+                    # Czas lokalny (z TZID)
+                    val_clean = val[:15]
+                    dt = datetime.strptime(val_clean, "%Y%m%dT%H%M%S")
                 return dt, False
         except Exception as e:
             log.debug("Błąd parsowania daty %r: %s", val, e)

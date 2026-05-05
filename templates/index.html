@@ -31,25 +31,48 @@
       </div>
     </div>
 
+    <!-- Wywóz odpadów -->
+    <div class="tile tile-waste">
+      <div class="tile-header">
+        <i class="fa-solid fa-trash"></i> Wywóz odpadów
+      </div>
+      <div class="waste-body" id="waste-body">
+        <div class="cal-placeholder">Ładowanie…</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── KOLUMNA ŚRODKOWA ──────────────────────────────────────── -->
   <div class="col-mid">
 
-    <!-- Pogoda (przeniesiona z kafelka zegara) -->
+    <!-- Pogoda — aktualna + prognoza poziomo -->
     <div class="tile tile-weather">
       <div class="tile-header">
         <i class="fa-solid fa-cloud-sun"></i> Pogoda
       </div>
       <div class="weather-tile-body">
-        <div class="weather-current" id="weather-current">
-          <div class="weather-main">
-            <i class="fa-solid fa-sun weather-icon" id="w-icon"></i>
-            <span class="weather-temp" id="w-temp">--°</span>
+        <!-- Aktualna po lewej, prognoza po prawej -->
+        <div class="weather-split">
+          <div class="weather-current" id="weather-current">
+            <div class="weather-main">
+              <i class="fa-solid fa-sun weather-icon" id="w-icon"></i>
+              <span class="weather-temp" id="w-temp">--°</span>
+            </div>
+            <div class="weather-details" id="w-details"></div>
           </div>
-          <div class="weather-details" id="w-details"></div>
+          <div class="weather-forecast" id="weather-forecast"></div>
         </div>
-        <div class="weather-forecast" id="weather-forecast"></div>
+      </div>
+    </div>
+
+    <!-- Home Assistant (zarezerwowany) -->
+    <div class="tile tile-ha">
+      <div class="tile-header">
+        <i class="fa-solid fa-house"></i> Dom
+      </div>
+      <div class="ha-body" id="ha-body">
+        <div class="cal-placeholder">Home Assistant</div>
       </div>
     </div>
 
@@ -59,16 +82,6 @@
         <div class="cal-placeholder">
           <i class="fa-solid fa-image" style="font-size:2rem;opacity:0.3"></i>
         </div>
-      </div>
-    </div>
-
-    <!-- Wywóz odpadów -->
-    <div class="tile tile-waste">
-      <div class="tile-header">
-        <i class="fa-solid fa-trash"></i> Wywóz odpadów
-      </div>
-      <div class="waste-body" id="waste-body">
-        <div class="cal-placeholder">Ładowanie…</div>
       </div>
     </div>
 

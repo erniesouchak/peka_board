@@ -48,7 +48,7 @@ html, body {
 /* ── Dashboard — siatka 3-kolumnowa ──────────────────────────────────────── */
 .dashboard {
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
+  grid-template-columns: 1fr 1.4fr 1.8fr;
   grid-template-rows: 1fr;
   gap: 8px;
   padding: 8px 8px 34px 8px;
@@ -952,3 +952,32 @@ body.config-body { overflow: auto; height: auto; }
 
 /* Jasny motyw */
 [data-theme="light"] .cal-event.cal-today { background: rgba(184,134,11,0.08); }
+
+/* ── Pogoda — poziomy układ ───────────────────────────────────────────────── */
+.weather-split {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.weather-split .weather-current {
+  flex: 0 0 auto;
+  border-top: none;
+  border-right: 1px solid var(--sep);
+  padding-top: 0;
+  padding-right: 12px;
+  margin-top: 0;
+}
+
+.weather-split .weather-forecast {
+  flex: 1;
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* Prognoza pionowa gdy obok aktualnej */
+.weather-split .forecast-day {
+  grid-template-columns: 36px 1fr 20px 52px;
+  padding: 3px 2px;
+}
