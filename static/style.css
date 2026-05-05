@@ -386,11 +386,11 @@ html, body {
 /* Gdzie jest pojazd */
 .dep-current {
   font-size: 0.78rem;
-  color: var(--dim);
   padding-left: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: bold;
 }
 .dep-current.live { color: var(--green); }
   font-family: var(--font-mono);
