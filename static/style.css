@@ -1013,6 +1013,7 @@ body.config-body { overflow: auto; height: auto; }
 :root .dep-header .dep-grid span  { color: #6a7d99; }
 :root .dep-direction              { color: #c8d8ee; }
 :root .dep-current                { color: #7090aa; }
+:root .dep-current.live           { color: #2ecc71; }
 
 /* ── Poprawki czytelności motywu jasnego ──────────────────────────────────── */
 [data-theme="light"] .tile-header               { color: #3a2e00; }
