@@ -46,33 +46,22 @@
   <!-- ── KOLUMNA ŚRODKOWA ──────────────────────────────────────── -->
   <div class="col-mid">
 
-    <!-- Pogoda — aktualna + prognoza poziomo -->
+    <!-- Pogoda — aktualna po lewej, prognoza po prawej -->
     <div class="tile tile-weather">
       <div class="tile-header">
         <i class="fa-solid fa-cloud-sun"></i> Pogoda
       </div>
       <div class="weather-tile-body">
-        <!-- Aktualna po lewej, prognoza po prawej -->
         <div class="weather-split">
-          <div class="weather-current" id="weather-current">
+          <div class="weather-left">
             <div class="weather-main">
               <i class="fa-solid fa-sun weather-icon" id="w-icon"></i>
               <span class="weather-temp" id="w-temp">--°</span>
             </div>
             <div class="weather-details" id="w-details"></div>
           </div>
-          <div class="weather-forecast" id="weather-forecast"></div>
+          <div class="weather-right" id="weather-forecast"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- Home Assistant (zarezerwowany) -->
-    <div class="tile tile-ha">
-      <div class="tile-header">
-        <i class="fa-solid fa-house"></i> Dom
-      </div>
-      <div class="ha-body" id="ha-body">
-        <div class="cal-placeholder">Home Assistant</div>
       </div>
     </div>
 

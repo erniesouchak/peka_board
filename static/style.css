@@ -48,7 +48,7 @@ html, body {
 /* ── Dashboard — siatka 3-kolumnowa ──────────────────────────────────────── */
 .dashboard {
   display: grid;
-  grid-template-columns: 1fr 1.4fr 1.8fr;
+  grid-template-columns: 0.7fr 1.4fr 1.8fr;
   grid-template-rows: 1fr;
   gap: 8px;
   padding: 8px 8px 34px 8px;
@@ -954,30 +954,27 @@ body.config-body { overflow: auto; height: auto; }
 [data-theme="light"] .cal-event.cal-today { background: rgba(184,134,11,0.08); }
 
 /* ── Pogoda — poziomy układ ───────────────────────────────────────────────── */
+.weather-tile-body {
+  padding: 10px;
+}
+
 .weather-split {
   display: flex;
+  flex-direction: row;
   gap: 12px;
   align-items: flex-start;
 }
 
-.weather-split .weather-current {
+.weather-left {
   flex: 0 0 auto;
-  border-top: none;
-  border-right: 1px solid var(--sep);
-  padding-top: 0;
   padding-right: 12px;
-  margin-top: 0;
+  border-right: 1px solid var(--sep);
 }
 
-.weather-split .weather-forecast {
+.weather-right {
   flex: 1;
-  border-top: none;
-  padding-top: 0;
-  margin-top: 0;
-}
-
-/* Prognoza pionowa gdy obok aktualnej */
-.weather-split .forecast-day {
-  grid-template-columns: 36px 1fr 20px 52px;
-  padding: 3px 2px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
