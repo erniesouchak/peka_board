@@ -1031,8 +1031,12 @@ body.config-body { overflow: auto; height: auto; }
 [data-theme="light"] .cal-date-label            { color: #7a6a40; }
 [data-theme="light"] .cal-summary               { color: #1a1a1a; }
 [data-theme="light"] .waste-day-label           { color: #7a6a40; }
+[data-theme="light"] .waste-day-label.today      { color: #c0392b; }
+[data-theme="light"] .waste-day-label.tomorrow   { color: #8B6000; }
+[data-theme="light"] .waste-item-label           { color: #3a3020; }
 
 /* Kalendarz — tło dzisiejszego */
 :root .cal-event.cal-today                    { background: rgba(245,166,35,0.12); border-left: 3px solid var(--gold); }
 [data-theme="light"] .cal-event.cal-today     { background: rgba(184,134,11,0.10); border-left: 3px solid var(--gold); }
+
 
