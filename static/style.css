@@ -13,7 +13,7 @@
   --red:       #e74c3c;
   --blue:      #5dade2;
   --text:      #e8eef8;
-  --dim:       #4a5568;
+  --dim:       #8899bb;
   --late:      #e74c3c;
   --early:     #27ae60;
   --font-mono: "Consolas", "Courier New", monospace;
@@ -1002,3 +1002,40 @@ body.config-body { overflow: auto; height: auto; }
   text-decoration: none;
 }
 .sb-attribution a:hover { opacity: 0.8; }
+
+/* ── Poprawki czytelności motywu ciemnego ─────────────────────────────────── */
+.tile-header {
+  color: #a0b0cc;
+}
+
+.bollard-symbol {
+  color: #6080aa;
+}
+
+.weather-details {
+  color: #a0b4cc;
+}
+
+.forecast-desc {
+  color: #a0b4cc;
+}
+
+.t-min {
+  color: #7090aa;
+}
+
+.statusbar {
+  color: #8899bb;
+}
+
+.dep-header .dep-grid span {
+  color: #6a7d99;
+}
+
+.dep-direction {
+  color: #c8d8ee;
+}
+
+.dep-current {
+  color: #7090aa;
+}
