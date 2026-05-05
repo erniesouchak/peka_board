@@ -147,7 +147,7 @@ class GTFSRealtime:
 
                 # Opóźnienie tylko gdy pojazd dotarł do naszego przystanku
                 delay = self._trip_delays.get(rt_trip_id)
-                if delay is not None and cur_seq >= stop_seq:
+                if delay is not None and cur_seq >= stop_seq and cur_seq > 0:
                     dep["delay_seconds"] = delay
                 else:
                     dep["delay_seconds"] = None
