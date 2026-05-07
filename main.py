@@ -121,8 +121,7 @@ async def _gtfs_watcher():
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     config = load_config()
-    return templates.TemplateResponse("index.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
         "theme":     "dark",
     })
@@ -131,8 +130,7 @@ async def dashboard(request: Request):
 @app.get("/light", response_class=HTMLResponse)
 async def dashboard_light(request: Request):
     config = load_config()
-    return templates.TemplateResponse("index.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
         "theme":     "light",
     })
@@ -141,8 +139,7 @@ async def dashboard_light(request: Request):
 @app.get("/dark", response_class=HTMLResponse)
 async def dashboard_dark(request: Request):
     config = load_config()
-    return templates.TemplateResponse("index.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
         "theme":     "dark",
     })
@@ -151,8 +148,7 @@ async def dashboard_dark(request: Request):
 @app.get("/config-page", response_class=HTMLResponse)
 async def config_page(request: Request):
     config = load_config()
-    return templates.TemplateResponse("config.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "config.html", {
         "current_config": json.dumps(config, ensure_ascii=False),
     })
 
