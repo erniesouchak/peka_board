@@ -1040,3 +1040,6 @@ body.config-body { overflow: auto; height: auto; }
 [data-theme="light"] .cal-event.cal-today     { background: rgba(184,134,11,0.10); border-left: 3px solid var(--gold); }
 
 
+
+/* ── Ukrycie kursora (tryb kiosk) ────────────────────────────────────────── */
+* { cursor: none !important; }
