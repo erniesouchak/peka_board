@@ -48,7 +48,7 @@ html, body {
 /* ── Dashboard — siatka 3-kolumnowa ──────────────────────────────────────── */
 .dashboard {
   display: grid;
-  grid-template-columns: 0.7fr 1.4fr 1.8fr;
+  grid-template-columns: 0.55fr 1.5fr 1.8fr;
   grid-template-rows: 1fr;
   gap: 8px;
   padding: 8px 8px 34px 8px;
