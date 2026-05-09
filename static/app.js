@@ -103,13 +103,17 @@ function renderDepartures(data) {
         </div>`;
       tile.appendChild(hdr);
 
-      // Wiersze — max 3
+      // Kontener wierszy — rozciąga się do wypełnienia kafelka
+      const body = document.createElement("div");
+      body.className = "dep-body";
+
       const rows = group.rows_per_bollard || 3;
       const deps = group.departures.slice(0, rows);
       for (const dep of deps) {
         const row = buildDepRow(dep);
-        if (row) tile.appendChild(row);
+        if (row) body.appendChild(row);
       }
+      tile.appendChild(body);
     }
 
     container.appendChild(tile);
