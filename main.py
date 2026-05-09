@@ -37,7 +37,8 @@ from calendar_ical import CalendarICal
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-CONFIG_FILE = Path("config.json")
+CONFIG_FILE       = Path("config.json")
+BOARD_CONFIG_PATH = Path("board_config.json")
 MAX_DEPARTURES_PER_STOP = 20
 
 app = FastAPI(title="PEKA Board")
