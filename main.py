@@ -255,7 +255,7 @@ async def api_departures():
 async def api_calendar():
     """Zwróć nadchodzące wydarzenia z kalendarza iCal."""
     try:
-        return calendar.get_upcoming(days_ahead=14)
+        return calendar.get_upcoming(days_ahead=30)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
