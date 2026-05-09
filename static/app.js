@@ -1,5 +1,11 @@
 // app.js – PEKA Board frontend
 
+// Auto-reload raz po starcie żeby CSS cursor:none zadziałał przez Wayland
+if (!sessionStorage.getItem('reloaded')) {
+  sessionStorage.setItem('reloaded', '1');
+  setTimeout(() => location.reload(), 10000);
+}
+
 const REFRESH_INTERVAL = 60;
 let countdown = REFRESH_INTERVAL;
 let countdownTimer = null;
