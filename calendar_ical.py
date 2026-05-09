@@ -255,6 +255,27 @@ class CalendarICal:
                 month    = MONTHS_PL[start_date.month - 1]
                 date_label = f"{day_name} {start_date.day} {month}"
 
+            # Dla wydarzeń wielodniowych dodaj datę końca
+            if ev.get("all_day") and ev.get("end_dt"):
+                try:
+                    end_date = date.fromisoformat(ev["end_dt"][:10])
+                    # iCal end date dla all-day jest exclusive (dzień po ostatnim)
+                    end_date = end_date - timedelta(days=1)
+                    if end_date > start_date:
+                        end_day  = DAYS_PL[end_date.weekday()]
+                        end_month = MONTHS_PL[end_date.month - 1]
+                        end_label = f"{end_day} {end_date.day} {end_month}"
+                        if diff == 0:
+                            date_label = f"Dziś – {end_label}"
+                        elif diff == 1:
+                            date_label = f"Jutro – {end_label}"
+                        elif diff < 0:
+                            date_label = f"Trwa – {end_label}"
+                        else:
+                            date_label = f"{date_label} – {end_label}"
+                except Exception:
+                    pass
+
             result.append({
                 **ev,
                 "date_label": date_label,
