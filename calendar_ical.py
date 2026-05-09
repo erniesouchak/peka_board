@@ -35,7 +35,7 @@ MONTHS_PL = ["stycznia","lutego","marca","kwietnia","maja","czerwca",
 
 class CalendarICal:
     def __init__(self):
-        self._ical_url: str = ""
+        self._ical_urls: list[str] = []
         self._events: list[dict] = []
         self._last_fetch: float = 0.0
         self._configured = False
@@ -46,10 +46,16 @@ class CalendarICal:
         try:
             cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
             cal = cfg.get("calendar", {})
-            self._ical_url   = cal.get("ical_url", "")
-            self._configured = bool(self._ical_url)
+            # Obsługa pojedynczego URL lub listy
+            url = cal.get("ical_url", "")
+            urls = cal.get("ical_urls", [])
+            if url:
+                urls.append(url)
+            # Podmień webcal:// na https://
+            self._ical_urls = [u.replace("webcal://", "https://") for u in urls if u]
+            self._configured = bool(self._ical_urls)
             if self._configured:
-                log.info("Kalendarz iCal skonfigurowany")
+                log.info("Kalendarz iCal skonfigurowany: %d źródeł", len(self._ical_urls))
         except Exception as e:
             log.warning("Błąd odczytu konfiguracji kalendarza: %s", e)
 
@@ -71,18 +77,31 @@ class CalendarICal:
     def _fetch(self):
         if not self._configured:
             return
-        try:
-            r = requests.get(self._ical_url, timeout=15)
-            r.raise_for_status()
-            self._events = self._parse(r.text)
-            self._last_fetch = time.time()
-            CACHE_PATH.write_text(json.dumps({
-                "ts":     self._last_fetch,
-                "events": self._events,
-            }, ensure_ascii=False), encoding="utf-8")
-            log.info("Kalendarz: pobrano %d wydarzeń", len(self._events))
-        except Exception as e:
-            log.warning("Błąd pobierania kalendarza: %s", e)
+        all_events = []
+        for url in self._ical_urls:
+            try:
+                r = requests.get(url, timeout=15)
+                r.raise_for_status()
+                events = self._parse(r.text)
+                all_events.extend(events)
+                log.info("Kalendarz: pobrano %d wydarzeń z %s", len(events), url[:50])
+            except Exception as e:
+                log.warning("Błąd pobierania kalendarza %s: %s", url[:50], e)
+        # Posortuj i usuń duplikaty po summary+start_date
+        seen = set()
+        unique = []
+        for ev in sorted(all_events, key=lambda e: e.get("start_dt", "")):
+            key = (ev.get("summary"), ev.get("start_date"))
+            if key not in seen:
+                seen.add(key)
+                unique.append(ev)
+        self._events = unique
+        self._last_fetch = time.time()
+        CACHE_PATH.write_text(json.dumps({
+            "ts":     self._last_fetch,
+            "events": self._events,
+        }, ensure_ascii=False), encoding="utf-8")
+        log.info("Kalendarz: łącznie %d wydarzeń", len(self._events))
 
     def _parse(self, ical_text: str) -> list[dict]:
         """Parsuj iCal i zwróć listę wydarzeń."""
