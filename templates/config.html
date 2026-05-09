@@ -68,8 +68,15 @@
 </div>
 
 <script>
-const MAX_BOLLARDS = 6;
-const MAX_ROWS     = 16;
+let MAX_BOLLARDS = 6;
+let MAX_ROWS     = 16;
+
+// Pobierz limity z konfiguracji
+fetch("/api/board-config").then(r => r.json()).then(cfg => {
+  MAX_BOLLARDS = cfg.max_bollards;
+  MAX_ROWS     = cfg.max_rows;
+  renderSelected();
+});
 
 let searchResults  = [];
 let bollardResults = [];

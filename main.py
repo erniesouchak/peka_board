@@ -207,8 +207,22 @@ async def api_departures():
     if not config:
         return []
 
-    # Liczba wierszy z konfiguracji każdego bollardu (domyślnie 2)
-    # Fallback: automatyczne jeśli brak w config
+    # Wczytaj limity z board_config.json
+    max_rows = 16
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            bcfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+            max_rows = int(bcfg.get("board", {}).get("max_rows", 16))
+        except Exception:
+            pass
+
+    # Oblicz ile wierszy jest skonfigurowane
+    total_rows = sum(max(1, min(5, int(b.get("rows", 2)))) for b in config)
+
+    # Rozdziel wolne wiersze równomiernie między bollardy
+    extra_rows = max(0, max_rows - total_rows)
+    extra_per_bollard = extra_rows // len(config) if config else 0
+    extra_remainder = extra_rows % len(config) if config else 0
 
     try:
         gtfs_static.ensure_loaded()
@@ -217,9 +231,12 @@ async def api_departures():
         return JSONResponse({"error": str(e)}, status_code=503)
 
     result = []
-    for bollard in config:
+    for i, bollard in enumerate(config):
         symbol           = bollard.get("symbol", "")
-        rows_per_bollard = max(1, min(5, int(bollard.get("rows", 2))))
+        base_rows        = max(1, min(5, int(bollard.get("rows", 2))))
+        # Dodaj ekstra wiersze żeby wypełnić ekran
+        bonus = extra_per_bollard + (1 if i < extra_remainder else 0)
+        rows_per_bollard = base_rows + bonus
         deps = gtfs_static.get_departures_for_stop(
             symbol, limit=MAX_DEPARTURES_PER_STOP
         )
@@ -249,6 +266,22 @@ async def api_departures():
         })
 
     return result
+
+
+@app.get("/api/board-config")
+async def api_board_config():
+    """Zwróć konfigurację tablicy (limity)."""
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+            board = cfg.get("board", {})
+            return {
+                "max_bollards": int(board.get("max_bollards", 6)),
+                "max_rows":     int(board.get("max_rows", 16)),
+            }
+        except Exception:
+            pass
+    return {"max_bollards": 6, "max_rows": 16}
 
 
 @app.get("/api/calendar")
