@@ -64,6 +64,14 @@ function renderDepartures(data) {
     return;
   }
 
+  // Proporcjonalny grid — każdy bollard zajmuje tyle miejsca ile ma wierszy
+  const gridRows = data.map(g => `${g.rows_per_bollard || 2}fr`).join(" ");
+  container.style.display = "grid";
+  container.style.gridTemplateRows = gridRows;
+  container.style.gridTemplateColumns = "1fr";
+  container.style.gap = "6px";
+  container.style.height = "100%";
+
   for (const group of data) {
     const tile = document.createElement("div");
     tile.className = "tile-bollard";
