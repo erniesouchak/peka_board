@@ -3,3 +3,4 @@ waste_cache.json
 gtfs_cache*.zip
 synology_session.json
 calendar_cache.json
+.venv/
