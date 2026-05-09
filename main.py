@@ -234,10 +234,7 @@ async def api_departures():
     result = []
     for i, bollard in enumerate(config):
         symbol           = bollard.get("symbol", "")
-        base_rows        = max(1, min(5, int(bollard.get("rows", 2))))
-        # Dodaj ekstra wiersze żeby wypełnić ekran
-        bonus = extra_per_bollard + (1 if i < extra_remainder else 0)
-        rows_per_bollard = base_rows + bonus
+        rows_per_bollard = max(1, min(5, int(bollard.get("rows", 2))))
         deps = gtfs_static.get_departures_for_stop(
             symbol, limit=MAX_DEPARTURES_PER_STOP
         )
