@@ -390,3 +390,73 @@ function renderCalendar(events) {
 // Uruchom przy starcie i odświeżaj co godzinę
 fetchCalendar();
 setInterval(fetchCalendar, 3600000);
+
+// ── Sport ─────────────────────────────────────────────────────────────────────
+
+async function fetchSports() {
+  try {
+    const r = await fetch("/api/sports");
+    if (!r.ok) return;
+    const data = await r.json();
+    renderSports(data);
+  } catch(e) {}
+}
+
+function renderSports(data) {
+  const el = document.getElementById("sports-body");
+  if (!el) return;
+  let html = "";
+
+  // Piłka nożna
+  if (data.soccer && data.soccer.length > 0) {
+    for (const s of data.soccer) {
+      const gd = s.goal_diff >= 0 ? `+${s.goal_diff}` : `${s.goal_diff}`;
+      html += `
+        <div class="sport-league">${esc(s.league)}</div>
+        <div class="sport-row">
+          <span class="sport-rank">${s.rank}.</span>
+          <span class="sport-team">${esc(s.team)}</span>
+          <span class="sport-num" title="Mecze">${s.played}</span>
+          <span class="sport-num" title="Wygrane">${s.wins}</span>
+          <span class="sport-num" title="Remisy">${s.draws}</span>
+          <span class="sport-num" title="Porażki">${s.losses}</span>
+          <span class="sport-num" title="Różnica bramek">${gd}</span>
+          <span class="sport-pts">${s.points}</span>
+        </div>`;
+    }
+  }
+
+  // NFL standings (pobrane z API)
+  if (data.nfl_standings) {
+    html += `<div class="sport-league">NFL – NFC West</div>`;
+    for (const t of data.nfl_standings) {
+      const pct = (t.win_percentage * 100).toFixed(0);
+      html += `
+        <div class="sport-row">
+          <span class="sport-rank">${t.rank}.</span>
+          <span class="sport-team ${t.is_our_team ? 'sport-highlight' : ''}">${esc(t.name)}</span>
+          <span class="sport-num">${t.wins}-${t.losses}</span>
+          <span class="sport-num" style="grid-column:span 5">${pct}%</span>
+        </div>`;
+    }
+  }
+
+  // MLB standings
+  if (data.mlb_standings) {
+    html += `<div class="sport-league">MLB – AL West</div>`;
+    for (const t of data.mlb_standings) {
+      html += `
+        <div class="sport-row">
+          <span class="sport-rank">${t.rank}.</span>
+          <span class="sport-team ${t.is_our_team ? 'sport-highlight' : ''}">${esc(t.name)}</span>
+          <span class="sport-num">${t.wins}-${t.losses}</span>
+          <span class="sport-num" style="grid-column:span 5">${t.gb || '—'} GB</span>
+        </div>`;
+    }
+  }
+
+  el.innerHTML = html || "<div class='cal-placeholder'>Brak danych</div>";
+}
+
+fetchSports();
+setInterval(fetchSports, 3600000);

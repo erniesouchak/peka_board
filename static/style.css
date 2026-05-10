@@ -1051,3 +1051,96 @@ body.config-body { overflow: auto; height: auto; }
 
 /* ── Ukrycie kursora (tryb kiosk) ────────────────────────────────────────── */
 * { cursor: none !important; }
+
+/* ── Prawa kolumna — bollardy + sport ────────────────────────────────────── */
+.col-right {
+  display: flex !important;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.col-right-top {
+  flex: 3;
+  min-height: 0;
+  height: 100%;
+}
+
+.col-right-bottom {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ── Widget sportowy ─────────────────────────────────────────────────────── */
+.sports-body {
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  height: calc(100% - 30px);
+}
+
+.sport-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 28px 28px 28px 28px 28px 32px;
+  align-items: center;
+  font-size: 0.75rem;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--sep);
+  gap: 4px;
+}
+
+.sport-row:last-child { border-bottom: none; }
+
+.sport-league {
+  font-size: 0.65rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding-top: 4px;
+  grid-column: 1 / -1;
+}
+
+.sport-team {
+  color: var(--text);
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sport-rank {
+  font-family: var(--font-mono);
+  color: var(--gold);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.sport-num {
+  font-family: var(--font-mono);
+  color: var(--dim);
+  text-align: center;
+  font-size: 0.72rem;
+}
+
+.sport-pts {
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-weight: bold;
+  text-align: right;
+  font-size: 0.8rem;
+}
+
+/* NFL/MLB — wyniki */
+.sport-score {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.sport-score .win  { color: var(--green); }
+.sport-score .loss { color: var(--red); }
