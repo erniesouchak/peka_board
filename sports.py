@@ -122,23 +122,24 @@ class Sports:
             for e in entries:
                 name = e["team"].get("displayName", "")
                 if team_name.lower() in name.lower():
-                    stats = {s["name"]: s["value"] for s in e["stats"]}
+                    stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
                     return {
-                        "league":    league_display or league,
-                        "team":      name,
-                        "rank":      int(stats.get("rank", 0)),
-                        "played":    int(stats.get("gamesPlayed", 0)),
-                        "wins":      int(stats.get("wins", 0)),
-                        "draws":     int(stats.get("ties", 0)),
-                        "losses":    int(stats.get("losses", 0)),
-                        "goals_for": int(stats.get("pointsFor", 0)),
+                        "league":        league_display or league,
+                        "team":          name,
+                        "rank":          int(stats.get("rank", 0)),
+                        "played":        int(stats.get("gamesPlayed", 0)),
+                        "wins":          int(stats.get("wins", 0)),
+                        "draws":         int(stats.get("ties", 0)),
+                        "losses":        int(stats.get("losses", 0)),
+                        "goals_for":     int(stats.get("pointsFor", 0)),
                         "goals_against": int(stats.get("pointsAgainst", 0)),
-                        "goal_diff": int(stats.get("pointDifferential", 0)),
-                        "points":    int(stats.get("points", 0)),
+                        "goal_diff":     int(stats.get("pointDifferential", 0)),
+                        "points":        int(stats.get("points", 0)),
                     }
             log.warning("Sports: nie znaleziono %s w %s", team_name, league)
         except Exception as e:
-            log.warning("Sports: błąd parsowania %s: %s", league, e)
+            import traceback
+            log.warning("Sports: błąd parsowania %s: %s\n%s", league, e, traceback.format_exc())
         return None
 
     def get_all(self) -> dict:
