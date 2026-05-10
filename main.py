@@ -33,12 +33,12 @@ from waste_schedule import WasteSchedule
 from synology_photos import SynologyPhotos
 from weather import Weather
 from calendar_ical import CalendarICal
+from sports import Sports
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-CONFIG_FILE       = Path("config.json")
-BOARD_CONFIG_PATH = Path("board_config.json")
+CONFIG_FILE = Path("config.json")
 MAX_DEPARTURES_PER_STOP = 20
 
 app = FastAPI(title="PEKA Board")
@@ -54,6 +54,7 @@ waste_schedule = WasteSchedule()
 synology       = SynologyPhotos()
 weather        = Weather()
 calendar       = CalendarICal()
+sports_data    = Sports()
 
 
 # ── Konfiguracja ──────────────────────────────────────────────────────────────
@@ -88,33 +89,32 @@ async def startup():
         synology.load_config()
         weather.load_config()
         calendar.load_config()
+        sports_data.load_config()
     except Exception as e:
-        log.error("Błąd ładowania konfiguracji: %s", e)
+        log.error("Błąd ładowania konfiguracji Synology: %s", e)
     # Uruchom zadanie sprawdzające ważność paczki co godzinę
     asyncio.create_task(_gtfs_watcher())
 
 
 async def _gtfs_watcher():
-    """Co godzinę sprawdza czy paczka GTFS nadal obowiązuje."""
-    try:
-        while True:
-            await asyncio.sleep(3600)
-            try:
-                today = date.today()
-                if (gtfs_static._feed_start_date is None
-                        or gtfs_static._feed_end_date is None
-                        or not (gtfs_static._feed_start_date <= today
-                                <= gtfs_static._feed_end_date)):
-                    log.info("Paczka GTFS wygasła — pobieram nową…")
-                    gtfs_static._loaded = False
-                    gtfs_static.ensure_loaded()
-                    log.info("Paczka GTFS zaktualizowana automatycznie.")
-                else:
-                    log.debug("Paczka GTFS aktualna do %s.", gtfs_static._feed_end_date)
-            except Exception as e:
-                log.error("Błąd auto-aktualizacji GTFS: %s", e)
-    except asyncio.CancelledError:
-        log.debug("GTFS watcher zatrzymany.")
+    """Co godzinę sprawdza czy paczka GTFS nadal obowiązuje.
+    Jeśli nie — pobiera nową automatycznie."""
+    while True:
+        await asyncio.sleep(3600)  # 1 godzina
+        try:
+            today = date.today()
+            if (gtfs_static._feed_start_date is None
+                    or gtfs_static._feed_end_date is None
+                    or not (gtfs_static._feed_start_date <= today
+                            <= gtfs_static._feed_end_date)):
+                log.info("Paczka GTFS wygasła lub nie obejmuje dziś (%s) — pobieram nową…", today)
+                gtfs_static._loaded = False  # wymuś ponowne załadowanie
+                gtfs_static.ensure_loaded()
+                log.info("Paczka GTFS zaktualizowana automatycznie.")
+            else:
+                log.debug("Paczka GTFS aktualna do %s.", gtfs_static._feed_end_date)
+        except Exception as e:
+            log.error("Błąd auto-aktualizacji GTFS: %s", e)
 
 
 # ── Endpointy HTML ────────────────────────────────────────────────────────────
@@ -122,7 +122,8 @@ async def _gtfs_watcher():
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     config = load_config()
-    return templates.TemplateResponse(request, "index.html", {
+    return templates.TemplateResponse("index.html", {
+        "request":   request,
         "has_config": bool(config),
         "theme":     "dark",
     })
@@ -131,7 +132,8 @@ async def dashboard(request: Request):
 @app.get("/light", response_class=HTMLResponse)
 async def dashboard_light(request: Request):
     config = load_config()
-    return templates.TemplateResponse(request, "index.html", {
+    return templates.TemplateResponse("index.html", {
+        "request":   request,
         "has_config": bool(config),
         "theme":     "light",
     })
@@ -140,7 +142,8 @@ async def dashboard_light(request: Request):
 @app.get("/dark", response_class=HTMLResponse)
 async def dashboard_dark(request: Request):
     config = load_config()
-    return templates.TemplateResponse(request, "index.html", {
+    return templates.TemplateResponse("index.html", {
+        "request":   request,
         "has_config": bool(config),
         "theme":     "dark",
     })
@@ -149,7 +152,8 @@ async def dashboard_dark(request: Request):
 @app.get("/config-page", response_class=HTMLResponse)
 async def config_page(request: Request):
     config = load_config()
-    return templates.TemplateResponse(request, "config.html", {
+    return templates.TemplateResponse("config.html", {
+        "request": request,
         "current_config": json.dumps(config, ensure_ascii=False),
     })
 
@@ -208,22 +212,8 @@ async def api_departures():
     if not config:
         return []
 
-    # Wczytaj limity z board_config.json
-    max_rows = 16
-    if BOARD_CONFIG_PATH.exists():
-        try:
-            bcfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
-            max_rows = int(bcfg.get("board", {}).get("max_rows", 16))
-        except Exception:
-            pass
-
-    # Oblicz ile wierszy jest skonfigurowane
-    total_rows = sum(max(1, min(5, int(b.get("rows", 2)))) for b in config)
-
-    # Rozdziel wolne wiersze równomiernie między bollardy
-    extra_rows = max(0, max_rows - total_rows)
-    extra_per_bollard = extra_rows // len(config) if config else 0
-    extra_remainder = extra_rows % len(config) if config else 0
+    # Liczba wierszy z konfiguracji każdego bollardu (domyślnie 2)
+    # Fallback: automatyczne jeśli brak w config
 
     try:
         gtfs_static.ensure_loaded()
@@ -232,7 +222,7 @@ async def api_departures():
         return JSONResponse({"error": str(e)}, status_code=503)
 
     result = []
-    for i, bollard in enumerate(config):
+    for bollard in config:
         symbol           = bollard.get("symbol", "")
         rows_per_bollard = max(1, min(5, int(bollard.get("rows", 2))))
         deps = gtfs_static.get_departures_for_stop(
@@ -266,40 +256,6 @@ async def api_departures():
     return result
 
 
-@app.get("/api/board-config")
-async def api_board_config():
-    """Zwróć konfigurację tablicy (limity)."""
-    if BOARD_CONFIG_PATH.exists():
-        try:
-            cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
-            board = cfg.get("board", {})
-            return {
-                "max_bollards": int(board.get("max_bollards", 6)),
-                "max_rows":     int(board.get("max_rows", 16)),
-            }
-        except Exception:
-            pass
-    return {"max_bollards": 6, "max_rows": 16}
-
-
-@app.get("/api/calendar")
-async def api_calendar():
-    """Zwróć nadchodzące wydarzenia z kalendarza iCal."""
-    try:
-        return calendar.get_upcoming(days_ahead=30)
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-
-@app.get("/api/weather")
-async def api_weather():
-    """Zwróć aktualną pogodę i prognozę 3-dniową."""
-    try:
-        return weather.get_all()
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-
 @app.get("/api/photo/random")
 async def api_photo_random():
     """Zwróć dane losowego zdjęcia z Synology Photos."""
@@ -308,6 +264,7 @@ async def api_photo_random():
     photo = synology.get_random_photo()
     if not photo:
         return JSONResponse({"error": "Brak zdjęć"}, status_code=404)
+    log.info("SYNOLOGY ID w random: %d, sid: %s", id(synology), synology._sharing_sid[:10] if synology._sharing_sid else "PUSTY")
     return photo
 
 
@@ -315,6 +272,7 @@ async def api_photo_random():
 async def api_photo_proxy(photo_id: int, cache_key: str = ""):
     """Proxy dla zdjęć Synology — ukrywa token sesji przed przeglądarką."""
     from fastapi.responses import Response
+    log.info("SYNOLOGY ID w proxy: %d, sid: %s", id(synology), synology._sharing_sid[:10] if synology._sharing_sid else "PUSTY")
     data = synology.fetch_photo_bytes(photo_id, cache_key)
     if not data:
         return JSONResponse({"error": "Nie znaleziono zdjęcia"}, status_code=404)
@@ -327,6 +285,17 @@ async def api_waste():
     try:
         waste_schedule.ensure_loaded(rejon="V")
         return waste_schedule.get_upcoming(days_ahead=4)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/sports")
+async def api_sports():
+    """Zwróć dane sportowe — piłka nożna (ESPN), NFL/MLB pobierane przez JS."""
+    try:
+        if not sports_data.is_configured:
+            return {"soccer": [], "nfl_team": "", "mlb_team": ""}
+        return sports_data.get_all()
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
