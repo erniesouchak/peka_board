@@ -8,6 +8,24 @@
     "lon": 16.875
   },
   "calendar": {
-    "ical_url": "https://calendar.google.com/calendar/ical/TWOJ_URL/basic.ics"
+    "ical_urls": [
+      "https://calendar.google.com/calendar/ical/...",
+      "https://p71-caldav.icloud.com/published/2/..."
+    ]
+  },
+  "sports": {
+    "nfl_team":     "Seattle Seahawks",
+    "nfl_division": "NFC West",
+    "mlb_team":     "Seattle Mariners",
+    "mlb_division": "West",
+    "mlb_league":   "American League",
+    "soccer": [
+      {"league": "eng.2", "team": "Southampton", "name": "Championship"},
+      {"league": "ned.2", "team": "Vitesse",     "name": "Eerste Divisie"}
+    ]
+  },
+  "board": {
+    "max_bollards": 6,
+    "max_rows": 16
   }
 }

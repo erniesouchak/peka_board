@@ -2,15 +2,17 @@
 sports.py – dane sportowe dla PEKA Board
 
 Źródła:
-- NFL/MLB: Sportradar API (przez narzędzie wbudowane w serwer)
+- NFL/MLB: ESPN nieoficjalne API
 - Piłka nożna (Championship, Eerste Divisie): ESPN nieoficjalne API
-  Endpoint: https://site.api.espn.com/apis/v2/sports/soccer/{league}/standings
 
 Konfiguracja w board_config.json:
 {
   "sports": {
-    "nfl_team":    "Seattle Seahawks",
-    "mlb_team":    "Seattle Mariners",
+    "nfl_team":     "Seattle Seahawks",
+    "nfl_division": "NFC West",
+    "mlb_team":     "Seattle Mariners",
+    "mlb_division": "West",
+    "mlb_league":   "American League",
     "soccer": [
       {"league": "eng.2", "team": "Southampton",     "name": "Championship"},
       {"league": "ned.2", "team": "Vitesse",         "name": "Eerste Divisie"}
@@ -36,17 +38,27 @@ BOARD_CONFIG_PATH = Path("board_config.json")
 CACHE_PATH        = Path("sports_cache.json")
 CACHE_TTL         = 3600  # 1 godzina
 
-ESPN_STANDINGS = "https://site.api.espn.com/apis/v2/sports/soccer/{league}/standings"
+ESPN_SOCCER   = "https://site.api.espn.com/apis/v2/sports/soccer/{league}/standings"
+ESPN_NFL      = "https://site.api.espn.com/apis/v2/sports/football/nfl/standings"
+ESPN_MLB      = "https://site.api.espn.com/apis/v2/sports/baseball/mlb/standings"
+
+HEADERS = {
+    "Accept-Encoding": "identity",
+    "User-Agent": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
+}
 
 
 class Sports:
     def __init__(self):
-        self._nfl_team:   str = ""
-        self._mlb_team:   str = ""
-        self._soccer:     list[dict] = []
-        self._cache:      dict = {}
-        self._last_fetch: float = 0.0
-        self._configured  = False
+        self._nfl_team:     str = ""
+        self._nfl_division: str = "NFC West"
+        self._mlb_team:     str = ""
+        self._mlb_division: str = "West"
+        self._mlb_league:   str = "American League"
+        self._soccer:       list[dict] = []
+        self._cache:        dict = {}
+        self._last_fetch:   float = 0.0
+        self._configured    = False
 
     def load_config(self):
         if not BOARD_CONFIG_PATH.exists():
@@ -54,21 +66,22 @@ class Sports:
         try:
             cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
             sp = cfg.get("sports", {})
-            self._nfl_team = sp.get("nfl_team", "")
-            self._mlb_team = sp.get("mlb_team", "")
-            self._soccer   = sp.get("soccer", [])
-            self._configured = bool(self._nfl_team or self._mlb_team or self._soccer)
+            self._nfl_team     = sp.get("nfl_team", "")
+            self._nfl_division = sp.get("nfl_division", "NFC West")
+            self._mlb_team     = sp.get("mlb_team", "")
+            self._mlb_division = sp.get("mlb_division", "West")
+            self._mlb_league   = sp.get("mlb_league", "American League")
+            self._soccer       = sp.get("soccer", [])
+            self._configured   = bool(self._nfl_team or self._mlb_team or self._soccer)
             if self._configured:
-                log.info("Sports: skonfigurowano NFL=%s MLB=%s soccer=%d",
+                log.info("Sports: NFL=%s MLB=%s soccer=%d",
                          self._nfl_team, self._mlb_team, len(self._soccer))
         except Exception as e:
-            log.warning("Sports: błąd odczytu konfiguracji: %s", e)
+            log.warning("Sports: błąd konfiguracji: %s", e)
 
     def ensure_fresh(self):
-        """Odśwież dane jeśli cache starszy niż 1 godzina."""
         if self._cache and time.time() - self._last_fetch < CACHE_TTL:
             return
-        # Spróbuj z cache plikowego
         if CACHE_PATH.exists():
             try:
                 cached = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
@@ -81,15 +94,21 @@ class Sports:
         self._fetch_all()
 
     def _fetch_all(self):
-        """Pobierz wszystkie dane sportowe."""
-        data = {"ts": time.time()}
+        data = {"ts": time.time(), "soccer": [], "nfl": [], "mlb": []}
 
-        # Piłka nożna przez ESPN
-        data["soccer"] = []
+        # Piłka nożna
         for sc in self._soccer:
-            result = self._fetch_soccer_standing(sc["league"], sc["team"], sc.get("name", ""))
+            result = self._fetch_soccer(sc["league"], sc["team"], sc.get("name", ""))
             if result:
                 data["soccer"].append(result)
+
+        # NFL
+        if self._nfl_team:
+            data["nfl"] = self._fetch_nfl_division()
+
+        # MLB
+        if self._mlb_team:
+            data["mlb"] = self._fetch_mlb_division()
 
         self._cache = data
         self._last_fetch = data["ts"]
@@ -99,24 +118,20 @@ class Sports:
             log.warning("Sports: błąd zapisu cache: %s", e)
 
     def _espn_get(self, url: str) -> Optional[dict]:
-        """Pobierz JSON z ESPN — obsłuż gzip."""
         try:
-            r = requests.get(url, headers={"Accept-Encoding": "identity"}, timeout=10)
+            r = requests.get(url, headers=HEADERS, timeout=10)
             content = r.content
             if content[:2] == b'\x1f\x8b':
                 content = gzip.decompress(content)
             return json.loads(content)
         except Exception as e:
-            log.warning("ESPN: błąd pobierania %s: %s", url, e)
+            log.warning("ESPN: błąd %s: %s", url[-40:], e)
             return None
 
-    def _fetch_soccer_standing(self, league: str, team_name: str, league_display: str) -> Optional[dict]:
-        """Pobierz pozycję drużyny w tabeli z ESPN."""
-        url = ESPN_STANDINGS.format(league=league)
-        data = self._espn_get(url)
+    def _fetch_soccer(self, league: str, team_name: str, league_display: str) -> Optional[dict]:
+        data = self._espn_get(ESPN_SOCCER.format(league=league))
         if not data:
             return None
-
         try:
             entries = data["children"][0]["standings"]["entries"]
             for e in entries:
@@ -136,18 +151,72 @@ class Sports:
                         "goal_diff":     int(stats.get("pointDifferential", 0)),
                         "points":        int(stats.get("points", 0)),
                     }
-            log.warning("Sports: nie znaleziono %s w %s", team_name, league)
         except Exception as e:
             import traceback
             log.warning("Sports: błąd parsowania %s: %s\n%s", league, e, traceback.format_exc())
         return None
 
+    def _fetch_nfl_division(self) -> list[dict]:
+        data = self._espn_get(ESPN_NFL)
+        if not data:
+            return []
+        try:
+            # Szukaj dywizji
+            for conf in data.get("children", []):
+                for div in conf.get("children", []):
+                    if self._nfl_division.lower() in div.get("name", "").lower():
+                        result = []
+                        for e in div.get("standings", {}).get("entries", []):
+                            name = e["team"].get("displayName", "")
+                            stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                            result.append({
+                                "team":    name,
+                                "wins":    int(stats.get("wins", 0)),
+                                "losses":  int(stats.get("losses", 0)),
+                                "pct":     round(float(stats.get("winPercent", 0)), 3),
+                                "is_ours": self._nfl_team.lower() in name.lower(),
+                            })
+                        log.info("Sports: NFL %s — %d drużyn", self._nfl_division, len(result))
+                        return result
+        except Exception as e:
+            log.warning("Sports: błąd NFL: %s", e)
+        return []
+
+    def _fetch_mlb_division(self) -> list[dict]:
+        data = self._espn_get(ESPN_MLB)
+        if not data:
+            return []
+        try:
+            for league in data.get("children", []):
+                if self._mlb_league.lower() not in league.get("name", "").lower():
+                    continue
+                for div in league.get("children", []):
+                    if self._mlb_division.lower() in div.get("name", "").lower():
+                        result = []
+                        for e in div.get("standings", {}).get("entries", []):
+                            name = e["team"].get("displayName", "")
+                            stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                            result.append({
+                                "team":    name,
+                                "wins":    int(stats.get("wins", 0)),
+                                "losses":  int(stats.get("losses", 0)),
+                                "gb":      stats.get("gamesBehind", 0),
+                                "is_ours": self._mlb_team.lower() in name.lower(),
+                            })
+                        log.info("Sports: MLB %s %s — %d drużyn",
+                                 self._mlb_league, self._mlb_division, len(result))
+                        return result
+        except Exception as e:
+            log.warning("Sports: błąd MLB: %s", e)
+        return []
+
     def get_all(self) -> dict:
-        """Zwróć wszystkie dane sportowe."""
         self.ensure_fresh()
         return {
             "nfl_team":  self._nfl_team,
+            "nfl":       self._cache.get("nfl", []),
             "mlb_team":  self._mlb_team,
+            "mlb":       self._cache.get("mlb", []),
             "soccer":    self._cache.get("soccer", []),
             "updated":   _fmt_time(self._last_fetch),
         }

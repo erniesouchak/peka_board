@@ -407,6 +407,36 @@ function renderSports(data) {
   if (!el) return;
   let html = "";
 
+  // NFL
+  if (data.nfl && data.nfl.length > 0) {
+    html += `<div class="sport-league">NFL – NFC West</div>`;
+    for (const t of data.nfl) {
+      const pct = (t.pct * 100).toFixed(0);
+      html += `
+        <div class="sport-row">
+          <span class="sport-rank"></span>
+          <span class="sport-team ${t.is_ours ? 'sport-highlight' : ''}">${esc(t.team)}</span>
+          <span class="sport-num">${t.wins}-${t.losses}</span>
+          <span class="sport-pts" style="grid-column:span 5">${pct}%</span>
+        </div>`;
+    }
+  }
+
+  // MLB
+  if (data.mlb && data.mlb.length > 0) {
+    html += `<div class="sport-league">MLB – AL West</div>`;
+    for (const t of data.mlb) {
+      const gb = t.gb === 0 ? "—" : t.gb;
+      html += `
+        <div class="sport-row">
+          <span class="sport-rank"></span>
+          <span class="sport-team ${t.is_ours ? 'sport-highlight' : ''}">${esc(t.team)}</span>
+          <span class="sport-num">${t.wins}-${t.losses}</span>
+          <span class="sport-pts" style="grid-column:span 5">${gb} GB</span>
+        </div>`;
+    }
+  }
+
   // Piłka nożna
   if (data.soccer && data.soccer.length > 0) {
     for (const s of data.soccer) {
@@ -422,35 +452,6 @@ function renderSports(data) {
           <span class="sport-num" title="Porażki">${s.losses}</span>
           <span class="sport-num" title="Różnica bramek">${gd}</span>
           <span class="sport-pts">${s.points}</span>
-        </div>`;
-    }
-  }
-
-  // NFL standings (pobrane z API)
-  if (data.nfl_standings) {
-    html += `<div class="sport-league">NFL – NFC West</div>`;
-    for (const t of data.nfl_standings) {
-      const pct = (t.win_percentage * 100).toFixed(0);
-      html += `
-        <div class="sport-row">
-          <span class="sport-rank">${t.rank}.</span>
-          <span class="sport-team ${t.is_our_team ? 'sport-highlight' : ''}">${esc(t.name)}</span>
-          <span class="sport-num">${t.wins}-${t.losses}</span>
-          <span class="sport-num" style="grid-column:span 5">${pct}%</span>
-        </div>`;
-    }
-  }
-
-  // MLB standings
-  if (data.mlb_standings) {
-    html += `<div class="sport-league">MLB – AL West</div>`;
-    for (const t of data.mlb_standings) {
-      html += `
-        <div class="sport-row">
-          <span class="sport-rank">${t.rank}.</span>
-          <span class="sport-team ${t.is_our_team ? 'sport-highlight' : ''}">${esc(t.name)}</span>
-          <span class="sport-num">${t.wins}-${t.losses}</span>
-          <span class="sport-num" style="grid-column:span 5">${t.gb || '—'} GB</span>
         </div>`;
     }
   }

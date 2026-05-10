@@ -1144,3 +1144,5 @@ body.config-body { overflow: auto; height: auto; }
 
 .sport-score .win  { color: var(--green); }
 .sport-score .loss { color: var(--red); }
+
+.sport-highlight { color: var(--gold) !important; font-weight: bold; }
