@@ -1188,3 +1188,4 @@ body.config-body { overflow: auto; height: auto; }
   font-family: var(--font-mono);
   font-weight: bold;
 }
+.sport-game-row.sport-draw { color: var(--dim); }

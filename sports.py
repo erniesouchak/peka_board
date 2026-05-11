@@ -301,7 +301,9 @@ class Sports:
 
                 if status == "post":
                     try:
-                        game["won"] = int(our_score) > int(opp_score)
+                        our = int(our_score)
+                        opp = int(opp_score)
+                        game["won"] = True if our > opp else (None if our == opp else False)
                     except Exception:
                         pass
                     last = game

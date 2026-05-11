@@ -463,8 +463,8 @@ function renderGameRow(sc) {
     const d  = new Date(g.date);
     const vs = g.home ? `vs ${g.opp}` : `@ ${g.opp}`;
     if (g.status === "post") {
-      const icon = g.won === true ? "✓" : g.won === false ? "✗" : "·";
-      const cls  = g.won === true ? "sport-win" : g.won === false ? "sport-loss" : "";
+      const icon = g.won === true ? "✓" : g.won === false ? "✗" : "=";
+      const cls  = g.won === true ? "sport-win" : g.won === false ? "sport-loss" : "sport-draw";
       return `<div class="sport-game-row ${cls}">${icon} ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span></div>`;
     } else if (g.status === "in") {
       return `<div class="sport-game-row sport-live">● LIVE ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span></div>`;
