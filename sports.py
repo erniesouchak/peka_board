@@ -244,7 +244,11 @@ class Sports:
             )
 
         for sc in self._soccer:
-            url = ESPN_SOC_SCO.format(league=sc["league"])
+            from datetime import datetime, timedelta
+            today = datetime.now()
+            date_from = (today - timedelta(days=7)).strftime("%Y%m%d")
+            date_to   = (today + timedelta(days=30)).strftime("%Y%m%d")
+            url = ESPN_SOC_SCO.format(league=sc["league"]) + f"?dates={date_from}-{date_to}"
             key = sc["league"]
             result[key] = self._fetch_scores(url, sc["team"], "soccer")
 
