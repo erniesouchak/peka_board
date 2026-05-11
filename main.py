@@ -1,17 +1,6 @@
 from __future__ import annotations
 """
 main.py – FastAPI backend tablicy PEKA
-
-Uruchomienie:
-    pip install fastapi uvicorn requests gtfs-realtime-bindings protobuf jinja2
-    uvicorn main:app --host 0.0.0.0 --port 8080 --reload
-
-Endpointy:
-    GET  /                    – dashboard HTML
-    GET  /api/departures      – odjazdy JSON dla wszystkich bollardów
-    GET  /api/status          – status GTFS (ważność, ostatni RT)
-    POST /api/config          – zapis konfiguracji bollardów
-    GET  /api/config          – odczyt konfiguracji
 """
 
 import asyncio
@@ -38,16 +27,15 @@ from sports import Sports
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
-CONFIG_FILE = Path("config.json")
+CONFIG_FILE       = Path("config.json")
+BOARD_CONFIG_PATH = Path("board_config.json")
 MAX_DEPARTURES_PER_STOP = 20
 
 app = FastAPI(title="PEKA Board")
 
-# Statyczne pliki i szablony
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Globalne instancje GTFS
 gtfs_static    = GTFSStatic()
 gtfs_rt        = GTFSRealtime()
 waste_schedule = WasteSchedule()
@@ -56,8 +44,6 @@ weather        = Weather()
 calendar       = CalendarICal()
 sports_data    = Sports()
 
-
-# ── Konfiguracja ──────────────────────────────────────────────────────────────
 
 def load_config() -> list[dict]:
     if CONFIG_FILE.exists():
@@ -71,8 +57,6 @@ def load_config() -> list[dict]:
 def save_config(data: list[dict]):
     CONFIG_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-
-# ── Startup ───────────────────────────────────────────────────────────────────
 
 @app.on_event("startup")
 async def startup():
@@ -91,39 +75,36 @@ async def startup():
         calendar.load_config()
         sports_data.load_config()
     except Exception as e:
-        log.error("Błąd ładowania konfiguracji Synology: %s", e)
-    # Uruchom zadanie sprawdzające ważność paczki co godzinę
+        log.error("Błąd ładowania konfiguracji: %s", e)
     asyncio.create_task(_gtfs_watcher())
 
 
 async def _gtfs_watcher():
-    """Co godzinę sprawdza czy paczka GTFS nadal obowiązuje.
-    Jeśli nie — pobiera nową automatycznie."""
-    while True:
-        await asyncio.sleep(3600)  # 1 godzina
-        try:
-            today = date.today()
-            if (gtfs_static._feed_start_date is None
-                    or gtfs_static._feed_end_date is None
-                    or not (gtfs_static._feed_start_date <= today
-                            <= gtfs_static._feed_end_date)):
-                log.info("Paczka GTFS wygasła lub nie obejmuje dziś (%s) — pobieram nową…", today)
-                gtfs_static._loaded = False  # wymuś ponowne załadowanie
-                gtfs_static.ensure_loaded()
-                log.info("Paczka GTFS zaktualizowana automatycznie.")
-            else:
-                log.debug("Paczka GTFS aktualna do %s.", gtfs_static._feed_end_date)
-        except Exception as e:
-            log.error("Błąd auto-aktualizacji GTFS: %s", e)
+    try:
+        while True:
+            await asyncio.sleep(3600)
+            try:
+                today = date.today()
+                if (gtfs_static._feed_start_date is None
+                        or gtfs_static._feed_end_date is None
+                        or not (gtfs_static._feed_start_date <= today
+                                <= gtfs_static._feed_end_date)):
+                    log.info("Paczka GTFS wygasła — pobieram nową…")
+                    gtfs_static._loaded = False
+                    gtfs_static.ensure_loaded()
+                    log.info("Paczka GTFS zaktualizowana automatycznie.")
+                else:
+                    log.debug("Paczka GTFS aktualna do %s.", gtfs_static._feed_end_date)
+            except Exception as e:
+                log.error("Błąd auto-aktualizacji GTFS: %s", e)
+    except asyncio.CancelledError:
+        log.debug("GTFS watcher zatrzymany.")
 
-
-# ── Endpointy HTML ────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
     config = load_config()
-    return templates.TemplateResponse("index.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
         "theme":     "dark",
     })
@@ -132,8 +113,7 @@ async def dashboard(request: Request):
 @app.get("/light", response_class=HTMLResponse)
 async def dashboard_light(request: Request):
     config = load_config()
-    return templates.TemplateResponse("index.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
         "theme":     "light",
     })
@@ -142,8 +122,7 @@ async def dashboard_light(request: Request):
 @app.get("/dark", response_class=HTMLResponse)
 async def dashboard_dark(request: Request):
     config = load_config()
-    return templates.TemplateResponse("index.html", {
-        "request":   request,
+    return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
         "theme":     "dark",
     })
@@ -152,13 +131,10 @@ async def dashboard_dark(request: Request):
 @app.get("/config-page", response_class=HTMLResponse)
 async def config_page(request: Request):
     config = load_config()
-    return templates.TemplateResponse("config.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "config.html", {
         "current_config": json.dumps(config, ensure_ascii=False),
     })
 
-
-# ── API – konfiguracja ────────────────────────────────────────────────────────
 
 @app.get("/api/config")
 async def api_get_config():
@@ -174,11 +150,8 @@ async def api_set_config(request: Request):
     return {"ok": True, "count": len(data)}
 
 
-# ── API – wyszukiwanie przystanków (GTFS) ────────────────────────────────────
-
 @app.get("/api/stops/search")
 async def search_stops(q: str = ""):
-    """Wyszukaj przystanek po nazwie używając danych GTFS."""
     if len(q) < 2:
         return []
     try:
@@ -190,7 +163,6 @@ async def search_stops(q: str = ""):
 
 @app.get("/api/stops/bollards")
 async def get_bollards(stop_name: str = ""):
-    """Pobierz bollardy dla przystanku używając danych GTFS."""
     if not stop_name:
         return []
     try:
@@ -200,20 +172,24 @@ async def get_bollards(stop_name: str = ""):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-# ── API – odjazdy ─────────────────────────────────────────────────────────────
-
 @app.get("/api/departures")
 async def api_departures():
-    """
-    Zwróć odjazdy dla wszystkich skonfigurowanych bollardów.
-    Format: [ { bollard: {...}, departures: [...] }, ... ]
-    """
     config = load_config()
     if not config:
         return []
 
-    # Liczba wierszy z konfiguracji każdego bollardu (domyślnie 2)
-    # Fallback: automatyczne jeśli brak w config
+    max_rows = 16
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            bcfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+            max_rows = int(bcfg.get("board", {}).get("max_rows", 16))
+        except Exception:
+            pass
+
+    total_rows = sum(max(1, min(5, int(b.get("rows", 2)))) for b in config)
+    extra_rows = max(0, max_rows - total_rows)
+    extra_per_bollard = extra_rows // len(config) if config else 0
+    extra_remainder = extra_rows % len(config) if config else 0
 
     try:
         gtfs_static.ensure_loaded()
@@ -222,21 +198,19 @@ async def api_departures():
         return JSONResponse({"error": str(e)}, status_code=503)
 
     result = []
-    for bollard in config:
+    for i, bollard in enumerate(config):
         symbol           = bollard.get("symbol", "")
         rows_per_bollard = max(1, min(5, int(bollard.get("rows", 2))))
         deps = gtfs_static.get_departures_for_stop(
             symbol, limit=MAX_DEPARTURES_PER_STOP
         )
 
-        # Wzbogać o GTFS-RT
         try:
             gtfs_rt.enrich_departures(
                 deps, gtfs_static.stop_code_to_id, symbol, gtfs_static)
         except Exception as e:
             log.warning("RT enrich błąd: %s", e)
 
-        # Dodaj informacje o pojeździe i minuty
         for dep in deps:
             vid = dep.get("vehicle_id", "")
             dep["vehicle_info"] = gtfs_static.get_vehicle_info(vid) if vid else {}
@@ -256,23 +230,60 @@ async def api_departures():
     return result
 
 
+@app.get("/api/board-config")
+async def api_board_config():
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+            board = cfg.get("board", {})
+            return {
+                "max_bollards": int(board.get("max_bollards", 6)),
+                "max_rows":     int(board.get("max_rows", 16)),
+            }
+        except Exception:
+            pass
+    return {"max_bollards": 6, "max_rows": 16}
+
+
+@app.get("/api/calendar")
+async def api_calendar():
+    try:
+        return calendar.get_upcoming(days_ahead=30)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/weather")
+async def api_weather():
+    try:
+        return weather.get_all()
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/sports")
+async def api_sports():
+    try:
+        if not sports_data.is_configured:
+            return {"soccer": [], "nfl": [], "mlb": [], "nfl_team": "", "mlb_team": ""}
+        return sports_data.get_all()
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/api/photo/random")
 async def api_photo_random():
-    """Zwróć dane losowego zdjęcia z Synology Photos."""
     if not synology.is_configured:
         return JSONResponse({"error": "Synology Photos nie skonfigurowany"}, status_code=503)
     photo = synology.get_random_photo()
     if not photo:
         return JSONResponse({"error": "Brak zdjęć"}, status_code=404)
-    log.info("SYNOLOGY ID w random: %d, sid: %s", id(synology), synology._sharing_sid[:10] if synology._sharing_sid else "PUSTY")
     return photo
 
 
 @app.get("/api/photo/{photo_id}")
 async def api_photo_proxy(photo_id: int, cache_key: str = ""):
-    """Proxy dla zdjęć Synology — ukrywa token sesji przed przeglądarką."""
     from fastapi.responses import Response
-    log.info("SYNOLOGY ID w proxy: %d, sid: %s", id(synology), synology._sharing_sid[:10] if synology._sharing_sid else "PUSTY")
     data = synology.fetch_photo_bytes(photo_id, cache_key)
     if not data:
         return JSONResponse({"error": "Nie znaleziono zdjęcia"}, status_code=404)
@@ -281,21 +292,9 @@ async def api_photo_proxy(photo_id: int, cache_key: str = ""):
 
 @app.get("/api/waste")
 async def api_waste():
-    """Zwróć najbliższe wywozy odpadów (3 dni do przodu)."""
     try:
         waste_schedule.ensure_loaded(rejon="V")
         return waste_schedule.get_upcoming(days_ahead=4)
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-
-@app.get("/api/sports")
-async def api_sports():
-    """Zwróć dane sportowe — piłka nożna (ESPN), NFL/MLB pobierane przez JS."""
-    try:
-        if not sports_data.is_configured:
-            return {"soccer": [], "nfl_team": "", "mlb_team": ""}
-        return sports_data.get_all()
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -312,38 +311,25 @@ async def api_status():
     }
 
 
-# ── Helper ────────────────────────────────────────────────────────────────────
-
 def _calc_minutes(scheduled: str, delay_seconds: Optional[int],
                   scheduled_str: Optional[str] = None) -> int:
-    """Oblicz ile minut do odjazdu (z uwzględnieniem opóźnienia)."""
     try:
         from datetime import date, timedelta
         now = datetime.now()
-
-        # Użyj scheduled_str jeśli dostępny (już przeliczony dla nocnych)
-        # scheduled_str to HH:MM po przeliczeniu >24h
         time_str = scheduled_str if scheduled_str else scheduled
         parts = time_str.split(":")
         h = int(parts[0])
         m = int(parts[1])
         s = int(parts[2]) if len(parts) > 2 else 0
-
         base = now.replace(hour=0, minute=0, second=0, microsecond=0)
         dep_dt = base + timedelta(hours=h, minutes=m, seconds=s)
-
-        # Jeśli godzina odjazdu jest wcześniejsza niż teraz
-        # i różnica > 12h — kurs jest na następny dzień
         diff = (dep_dt - now).total_seconds()
-        if diff < -43200:  # -12h
+        if diff < -43200:
             dep_dt += timedelta(days=1)
             diff = (dep_dt - now).total_seconds()
-
-        # Dodaj opóźnienie
         if delay_seconds is not None:
             dep_dt += timedelta(seconds=delay_seconds)
             diff = (dep_dt - now).total_seconds()
-
         if diff < -60:
             return -1
         return max(0, int(diff // 60))
