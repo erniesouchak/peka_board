@@ -448,7 +448,7 @@ function renderSports(data, scores) {
           <span class="sport-record">${s.wins}-${s.draws}-${s.losses}</span>
           <span class="sport-pts">${s.points} pkt</span>
         </div>`;
-      const leagueKey = Object.keys(scores).find(k => s.league.toLowerCase().includes(k) || k.includes(s.league.toLowerCase().split(' ')[0]));
+      const leagueKey = s.league_key;
       if (leagueKey && scores[leagueKey]) html += renderGameRow(scores[leagueKey]);
     }
   }

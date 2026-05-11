@@ -105,6 +105,7 @@ class Sports:
         for sc in self._soccer:
             result = self._fetch_soccer(sc["league"], sc["team"], sc.get("name", ""))
             if result:
+                result["league_key"] = sc["league"]
                 data["soccer"].append(result)
 
         # NFL
