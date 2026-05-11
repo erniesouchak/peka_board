@@ -1049,8 +1049,7 @@ body.config-body { overflow: auto; height: auto; }
 
 
 
-/* ── Ukrycie kursora (tryb kiosk) ────────────────────────────────────────── */
-* { cursor: none !important; }
+/* cursor: none obsługuje labwc/hide-cursor */
 
 /* ── Prawa kolumna — bollardy + sport ────────────────────────────────────── */
 .col-right {
@@ -1069,7 +1068,7 @@ body.config-body { overflow: auto; height: auto; }
 }
 
 .col-right-bottom {
-  flex: 1;
+  flex: 2;
   min-height: 0;
   overflow-y: auto;
 }
