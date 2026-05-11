@@ -156,56 +156,91 @@ class Sports:
             log.warning("Sports: błąd parsowania %s: %s\n%s", league, e, traceback.format_exc())
         return None
 
+    # Znane składy dywizji NFL (stałe, zmieniają się rzadko)
+    NFL_DIVISIONS = {
+        "NFC West":  ["Seattle Seahawks", "Los Angeles Rams", "San Francisco 49ers", "Arizona Cardinals"],
+        "NFC East":  ["Philadelphia Eagles", "Dallas Cowboys", "New York Giants", "Washington Commanders"],
+        "NFC North": ["Detroit Lions", "Green Bay Packers", "Minnesota Vikings", "Chicago Bears"],
+        "NFC South": ["Tampa Bay Buccaneers", "Atlanta Falcons", "New Orleans Saints", "Carolina Panthers"],
+        "AFC West":  ["Kansas City Chiefs", "Las Vegas Raiders", "Los Angeles Chargers", "Denver Broncos"],
+        "AFC East":  ["Buffalo Bills", "Miami Dolphins", "New England Patriots", "New York Jets"],
+        "AFC North": ["Baltimore Ravens", "Pittsburgh Steelers", "Cleveland Browns", "Cincinnati Bengals"],
+        "AFC South": ["Houston Texans", "Indianapolis Colts", "Jacksonville Jaguars", "Tennessee Titans"],
+    }
+
     def _fetch_nfl_division(self) -> list[dict]:
         data = self._espn_get(ESPN_NFL)
         if not data:
             return []
         try:
-            # Szukaj dywizji
+            division_teams = self.NFL_DIVISIONS.get(self._nfl_division, [])
+            all_entries = []
             for conf in data.get("children", []):
-                for div in conf.get("children", []):
-                    if self._nfl_division.lower() in div.get("name", "").lower():
-                        result = []
-                        for e in div.get("standings", {}).get("entries", []):
-                            name = e["team"].get("displayName", "")
-                            stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
-                            result.append({
-                                "team":    name,
-                                "wins":    int(stats.get("wins", 0)),
-                                "losses":  int(stats.get("losses", 0)),
-                                "pct":     round(float(stats.get("winPercent", 0)), 3),
-                                "is_ours": self._nfl_team.lower() in name.lower(),
-                            })
-                        log.info("Sports: NFL %s — %d drużyn", self._nfl_division, len(result))
-                        return result
+                all_entries.extend(conf.get("standings", {}).get("entries", []))
+
+            result = []
+            for e in all_entries:
+                name = e["team"].get("displayName", "")
+                if name not in division_teams:
+                    continue
+                stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                result.append({
+                    "team":    name,
+                    "wins":    int(stats.get("wins", 0)),
+                    "losses":  int(stats.get("losses", 0)),
+                    "pct":     round(float(stats.get("winPercent", 0)), 3),
+                    "is_ours": self._nfl_team.lower() in name.lower(),
+                })
+            # Posortuj po % wygranych
+            result.sort(key=lambda x: x["pct"], reverse=True)
+            log.info("Sports: NFL %s — %d drużyn", self._nfl_division, len(result))
+            return result
         except Exception as e:
             log.warning("Sports: błąd NFL: %s", e)
         return []
+
+    MLB_DIVISIONS = {
+        "AL West":   ["Seattle Mariners", "Houston Astros", "Los Angeles Angels", "Athletics", "Texas Rangers"],
+        "AL East":   ["New York Yankees", "Baltimore Orioles", "Boston Red Sox", "Tampa Bay Rays", "Toronto Blue Jays"],
+        "AL Central":["Cleveland Guardians", "Detroit Tigers", "Kansas City Royals", "Chicago White Sox", "Minnesota Twins"],
+        "NL West":   ["Los Angeles Dodgers", "San Francisco Giants", "San Diego Padres", "Arizona Diamondbacks", "Colorado Rockies"],
+        "NL East":   ["Atlanta Braves", "Philadelphia Phillies", "New York Mets", "Miami Marlins", "Washington Nationals"],
+        "NL Central":["Milwaukee Brewers", "Chicago Cubs", "St. Louis Cardinals", "Pittsburgh Pirates", "Cincinnati Reds"],
+    }
 
     def _fetch_mlb_division(self) -> list[dict]:
         data = self._espn_get(ESPN_MLB)
         if not data:
             return []
         try:
+            # Klucz dywizji: np. "West" + "American League" → "AL West"
+            conf_prefix = "AL" if "American" in self._mlb_league else "NL"
+            div_key = f"{conf_prefix} {self._mlb_division}"
+            division_teams = self.MLB_DIVISIONS.get(div_key, [])
+
+            all_entries = []
             for league in data.get("children", []):
-                if self._mlb_league.lower() not in league.get("name", "").lower():
+                if self._mlb_league.lower() in league.get("name", "").lower():
+                    all_entries.extend(league.get("standings", {}).get("entries", []))
+
+            result = []
+            for e in all_entries:
+                name = e["team"].get("displayName", "")
+                if name not in division_teams:
                     continue
-                for div in league.get("children", []):
-                    if self._mlb_division.lower() in div.get("name", "").lower():
-                        result = []
-                        for e in div.get("standings", {}).get("entries", []):
-                            name = e["team"].get("displayName", "")
-                            stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
-                            result.append({
-                                "team":    name,
-                                "wins":    int(stats.get("wins", 0)),
-                                "losses":  int(stats.get("losses", 0)),
-                                "gb":      stats.get("gamesBehind", 0),
-                                "is_ours": self._mlb_team.lower() in name.lower(),
-                            })
-                        log.info("Sports: MLB %s %s — %d drużyn",
-                                 self._mlb_league, self._mlb_division, len(result))
-                        return result
+                stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                gb = stats.get("gamesBehind", 0)
+                result.append({
+                    "team":    name,
+                    "wins":    int(stats.get("wins", 0)),
+                    "losses":  int(stats.get("losses", 0)),
+                    "pct":     round(float(stats.get("winPercent", 0)), 3),
+                    "gb":      "—" if gb == 0 else f"{gb:.1f}",
+                    "is_ours": self._mlb_team.lower() in name.lower(),
+                })
+            result.sort(key=lambda x: x["pct"], reverse=True)
+            log.info("Sports: MLB %s — %d drużyn", div_key, len(result))
+            return result
         except Exception as e:
             log.warning("Sports: błąd MLB: %s", e)
         return []
