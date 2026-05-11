@@ -1146,3 +1146,29 @@ body.config-body { overflow: auto; height: auto; }
 .sport-score .loss { color: var(--red); }
 
 .sport-highlight { color: var(--gold) !important; font-weight: bold; }
+
+/* ── Sport — uproszczony wiersz ──────────────────────────────────────────── */
+.sport-row-simple {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--sep);
+  font-size: 0.78rem;
+}
+
+.sport-row-simple:last-child { border-bottom: none; }
+
+.sport-row-simple .sport-team {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sport-record {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--dim);
+  flex-shrink: 0;
+}

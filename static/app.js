@@ -409,30 +409,24 @@ function renderSports(data) {
 
   // NFL
   if (data.nfl && data.nfl.length > 0) {
-    html += `<div class="sport-league">NFL – NFC West</div>`;
+    html += `<div class="sport-league">NFL – ${data.nfl_division || 'NFC West'}</div>`;
     for (const t of data.nfl) {
-      const pct = (t.pct * 100).toFixed(0);
       html += `
-        <div class="sport-row">
-          <span class="sport-rank"></span>
+        <div class="sport-row-simple">
           <span class="sport-team ${t.is_ours ? 'sport-highlight' : ''}">${esc(t.team)}</span>
-          <span class="sport-num">${t.wins}-${t.losses}</span>
-          <span class="sport-pts" style="grid-column:span 5">${pct}%</span>
+          <span class="sport-record">${t.wins}-${t.losses}</span>
         </div>`;
     }
   }
 
   // MLB
   if (data.mlb && data.mlb.length > 0) {
-    html += `<div class="sport-league">MLB – AL West</div>`;
+    html += `<div class="sport-league">MLB – ${data.mlb_division || 'AL West'}</div>`;
     for (const t of data.mlb) {
-      const gb = t.gb === 0 ? "—" : t.gb;
       html += `
-        <div class="sport-row">
-          <span class="sport-rank"></span>
+        <div class="sport-row-simple">
           <span class="sport-team ${t.is_ours ? 'sport-highlight' : ''}">${esc(t.team)}</span>
-          <span class="sport-num">${t.wins}-${t.losses}</span>
-          <span class="sport-pts" style="grid-column:span 5">${gb} GB</span>
+          <span class="sport-record">${t.wins}-${t.losses}</span>
         </div>`;
     }
   }
@@ -443,15 +437,11 @@ function renderSports(data) {
       const gd = s.goal_diff >= 0 ? `+${s.goal_diff}` : `${s.goal_diff}`;
       html += `
         <div class="sport-league">${esc(s.league)}</div>
-        <div class="sport-row">
+        <div class="sport-row-simple">
           <span class="sport-rank">${s.rank}.</span>
           <span class="sport-team">${esc(s.team)}</span>
-          <span class="sport-num" title="Mecze">${s.played}</span>
-          <span class="sport-num" title="Wygrane">${s.wins}</span>
-          <span class="sport-num" title="Remisy">${s.draws}</span>
-          <span class="sport-num" title="Porażki">${s.losses}</span>
-          <span class="sport-num" title="Różnica bramek">${gd}</span>
-          <span class="sport-pts">${s.points}</span>
+          <span class="sport-record">${s.wins}-${s.draws}-${s.losses}</span>
+          <span class="sport-pts">${s.points} pkt</span>
         </div>`;
     }
   }
