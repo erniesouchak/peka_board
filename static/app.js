@@ -409,11 +409,11 @@ function renderSports(data) {
 
   // NFL
   if (data.nfl && data.nfl.length > 0) {
-    html += `<div class="sport-league">NFL – ${data.nfl_division || 'NFC West'}</div>`;
+    html += `<div class="sport-league">NFL – NFC West</div>`;
     for (const t of data.nfl) {
       html += `
         <div class="sport-row-simple">
-          <span class="sport-team ${t.is_ours ? 'sport-highlight' : ''}">${esc(t.team)}</span>
+          <span class="sport-team sport-highlight">${esc(t.team)}</span>
           <span class="sport-record">${t.wins}-${t.losses}</span>
         </div>`;
     }
@@ -421,11 +421,11 @@ function renderSports(data) {
 
   // MLB
   if (data.mlb && data.mlb.length > 0) {
-    html += `<div class="sport-league">MLB – ${data.mlb_division || 'AL West'}</div>`;
+    html += `<div class="sport-league">MLB – AL West</div>`;
     for (const t of data.mlb) {
       html += `
         <div class="sport-row-simple">
-          <span class="sport-team ${t.is_ours ? 'sport-highlight' : ''}">${esc(t.team)}</span>
+          <span class="sport-team sport-highlight">${esc(t.team)}</span>
           <span class="sport-record">${t.wins}-${t.losses}</span>
         </div>`;
     }
@@ -434,7 +434,6 @@ function renderSports(data) {
   // Piłka nożna
   if (data.soccer && data.soccer.length > 0) {
     for (const s of data.soccer) {
-      const gd = s.goal_diff >= 0 ? `+${s.goal_diff}` : `${s.goal_diff}`;
       html += `
         <div class="sport-league">${esc(s.league)}</div>
         <div class="sport-row-simple">
