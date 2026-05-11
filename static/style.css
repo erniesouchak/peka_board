@@ -1172,3 +1172,20 @@ body.config-body { overflow: auto; height: auto; }
   color: var(--dim);
   flex-shrink: 0;
 }
+
+/* ── Wyniki meczów ────────────────────────────────────────────────────────── */
+.sport-game-row {
+  font-size: 0.72rem;
+  padding: 1px 4px 1px 12px;
+  color: var(--dim);
+}
+
+.sport-game-row.sport-win   { color: var(--green); }
+.sport-game-row.sport-loss  { color: var(--red); }
+.sport-game-row.sport-live  { color: var(--gold); font-weight: bold; }
+.sport-game-row.sport-next  { color: var(--blue); }
+
+.sport-score-val {
+  font-family: var(--font-mono);
+  font-weight: bold;
+}

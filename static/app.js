@@ -395,14 +395,18 @@ setInterval(fetchCalendar, 3600000);
 
 async function fetchSports() {
   try {
-    const r = await fetch("/api/sports");
-    if (!r.ok) return;
-    const data = await r.json();
-    renderSports(data);
+    const [r1, r2] = await Promise.all([
+      fetch("/api/sports"),
+      fetch("/api/sports/scores"),
+    ]);
+    if (!r1.ok) return;
+    const data   = await r1.json();
+    const scores = r2.ok ? await r2.json() : {};
+    renderSports(data, scores);
   } catch(e) {}
 }
 
-function renderSports(data) {
+function renderSports(data, scores) {
   const el = document.getElementById("sports-body");
   if (!el) return;
   let html = "";
@@ -417,6 +421,7 @@ function renderSports(data) {
           <span class="sport-record">${t.wins}-${t.losses}</span>
         </div>`;
     }
+    if (scores.nfl) html += renderGameRow(scores.nfl);
   }
 
   // MLB
@@ -429,6 +434,7 @@ function renderSports(data) {
           <span class="sport-record">${t.wins}-${t.losses}</span>
         </div>`;
     }
+    if (scores.mlb) html += renderGameRow(scores.mlb);
   }
 
   // Piłka nożna
@@ -442,10 +448,34 @@ function renderSports(data) {
           <span class="sport-record">${s.wins}-${s.draws}-${s.losses}</span>
           <span class="sport-pts">${s.points} pkt</span>
         </div>`;
+      const leagueKey = Object.keys(scores).find(k => s.league.toLowerCase().includes(k) || k.includes(s.league.toLowerCase().split(' ')[0]));
+      if (leagueKey && scores[leagueKey]) html += renderGameRow(scores[leagueKey]);
     }
   }
 
   el.innerHTML = html || "<div class='cal-placeholder'>Brak danych</div>";
+}
+
+function renderGameRow(sc) {
+  let html = "";
+  const fmt = (g) => {
+    if (!g) return "";
+    const d  = new Date(g.date);
+    const vs = g.home ? `vs ${g.opp}` : `@ ${g.opp}`;
+    if (g.status === "post") {
+      const icon = g.won === true ? "✓" : g.won === false ? "✗" : "·";
+      const cls  = g.won === true ? "sport-win" : g.won === false ? "sport-loss" : "";
+      return `<div class="sport-game-row ${cls}">${icon} ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span></div>`;
+    } else if (g.status === "in") {
+      return `<div class="sport-game-row sport-live">● LIVE ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span></div>`;
+    } else {
+      const time = d.toLocaleString("pl-PL", {weekday:"short", day:"numeric", month:"numeric", hour:"2-digit", minute:"2-digit"});
+      return `<div class="sport-game-row sport-next">→ ${vs} ${time}</div>`;
+    }
+  };
+  if (sc.last)  html += fmt(sc.last);
+  if (sc.next)  html += fmt(sc.next);
+  return html;
 }
 
 fetchSports();

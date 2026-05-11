@@ -41,6 +41,11 @@ CACHE_TTL         = 3600  # 1 godzina
 ESPN_SOCCER   = "https://site.api.espn.com/apis/v2/sports/soccer/{league}/standings"
 ESPN_NFL      = "https://site.api.espn.com/apis/v2/sports/football/nfl/standings"
 ESPN_MLB      = "https://site.api.espn.com/apis/v2/sports/baseball/mlb/standings"
+ESPN_NFL_SCO  = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+ESPN_MLB_SCO  = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+ESPN_SOC_SCO  = "https://site.api.espn.com/apis/site/v2/sports/soccer/{league}/scoreboard"
+
+SCORES_CACHE_TTL = 120  # 2 minuty dla wyników
 
 HEADERS = {
     "Accept-Encoding": "identity",
@@ -223,6 +228,88 @@ class Sports:
             "soccer":       self._cache.get("soccer", []),
             "updated":      _fmt_time(self._last_fetch),
         }
+
+    def get_scores(self) -> dict:
+        """Pobierz ostatni i następny mecz dla każdej drużyny."""
+        result = {}
+
+        if self._nfl_team:
+            result["nfl"] = self._fetch_scores(
+                ESPN_NFL_SCO, self._nfl_team, "nfl"
+            )
+
+        if self._mlb_team:
+            result["mlb"] = self._fetch_scores(
+                ESPN_MLB_SCO, self._mlb_team, "mlb"
+            )
+
+        for sc in self._soccer:
+            url = ESPN_SOC_SCO.format(league=sc["league"])
+            key = sc["league"]
+            result[key] = self._fetch_scores(url, sc["team"], "soccer")
+
+        return result
+
+    def _fetch_scores(self, url: str, team_name: str, sport: str) -> dict:
+        """Pobierz ostatni i następny mecz drużyny."""
+        data = self._espn_get(url)
+        if not data:
+            return {}
+        try:
+            events = data.get("events", [])
+            last  = None
+            next_ = None
+
+            for ev in events:
+                comps = ev.get("competitions", [{}])
+                comp  = comps[0] if comps else {}
+                teams = comp.get("competitors", [])
+                # Sprawdź czy nasza drużyna gra
+                our_team = None
+                opp_team = None
+                for t in teams:
+                    tname = t.get("team", {}).get("displayName", "")
+                    if team_name.lower() in tname.lower():
+                        our_team = t
+                    else:
+                        opp_team = t
+
+                if not our_team or not opp_team:
+                    continue
+
+                status = ev.get("status", {}).get("type", {}).get("state", "")
+                our_score = our_team.get("score", "")
+                opp_score = opp_team.get("score", "")
+                our_home  = our_team.get("homeAway", "") == "home"
+                opp_name  = opp_team.get("team", {}).get("abbreviation", "?")
+                date_str  = ev.get("date", "")
+                name      = ev.get("name", "")
+
+                game = {
+                    "status":   status,
+                    "our_score": our_score,
+                    "opp_score": opp_score,
+                    "opp":      opp_name,
+                    "home":     our_home,
+                    "date":     date_str,
+                    "won":      None,
+                }
+
+                if status == "post":
+                    try:
+                        game["won"] = int(our_score) > int(opp_score)
+                    except Exception:
+                        pass
+                    last = game
+                elif status == "in" and next_ is None:
+                    next_ = game
+                elif status == "pre" and next_ is None:
+                    next_ = game
+
+            return {"last": last, "next": next_}
+        except Exception as e:
+            log.warning("Sports scores błąd %s: %s", url[-40:], e)
+            return {}
 
     @property
     def is_configured(self) -> bool:

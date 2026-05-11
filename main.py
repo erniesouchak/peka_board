@@ -271,6 +271,17 @@ async def api_sports():
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.get("/api/sports/scores")
+async def api_sports_scores():
+    """Zwróć ostatni i następny mecz dla każdej drużyny."""
+    try:
+        if not sports_data.is_configured:
+            return {}
+        return sports_data.get_scores()
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/api/photo/random")
 async def api_photo_random():
     if not synology.is_configured:
