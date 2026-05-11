@@ -1062,13 +1062,13 @@ body.config-body { overflow: auto; height: auto; }
 }
 
 .col-right-top {
-  flex: 3;
+  flex: 13;
   min-height: 0;
   height: 100%;
 }
 
 .col-right-bottom {
-  flex: 2;
+  flex: 7;
   min-height: 0;
   overflow-y: auto;
 }
