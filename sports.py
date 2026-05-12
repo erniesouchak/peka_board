@@ -240,7 +240,7 @@ class Sports:
             )
 
         if self._mlb_team:
-            result["mlb"] = self._fetch_scores(
+            result["mlb"] = self._fetch_scores_with_history(
                 ESPN_MLB_SCO, self._mlb_team, "mlb"
             )
 
@@ -252,6 +252,26 @@ class Sports:
             url = ESPN_SOC_SCO.format(league=sc["league"]) + f"?dates={date_from}-{date_to}"
             key = sc["league"]
             result[key] = self._fetch_scores(url, sc["team"], "soccer")
+
+        return result
+
+    def _fetch_scores_with_history(self, base_url: str, team_name: str, sport: str) -> dict:
+        """Pobierz wyniki z historią — szuka wstecz jeśli brak ostatniego meczu."""
+        from datetime import datetime, timedelta
+
+        # Najpierw spróbuj bieżący scoreboard
+        result = self._fetch_scores(base_url, team_name, sport)
+
+        # Jeśli brak ostatniego meczu — szukaj wstecz
+        if not result.get("last"):
+            today = datetime.now()
+            for days_back in range(1, 8):
+                check_date = (today - timedelta(days=days_back)).strftime("%Y%m%d")
+                url = f"{base_url}?dates={check_date}"
+                hist = self._fetch_scores(url, team_name, sport)
+                if hist.get("last"):
+                    result["last"] = hist["last"]
+                    break
 
         return result
 

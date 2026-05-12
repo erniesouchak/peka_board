@@ -411,6 +411,20 @@ function renderSports(data, scores) {
   if (!el) return;
   let html = "";
 
+  // Piłka nożna — najpierw
+  if (data.soccer && data.soccer.length > 0) {
+    for (const s of data.soccer) {
+      html += `<div class="sport-league">${esc(s.league)}</div>`;
+      html += `
+        <div class="sport-row-simple">
+          <span class="sport-team">${esc(s.team)}</span>
+          <span class="sport-record">${s.rank}. · ${s.wins}-${s.draws}-${s.losses} · ${s.points} pkt</span>
+        </div>`;
+      const leagueKey = s.league_key;
+      if (leagueKey && scores[leagueKey]) html += renderGameRow(scores[leagueKey]);
+    }
+  }
+
   // NFL
   if (data.nfl && data.nfl.length > 0) {
     html += `<div class="sport-league">NFL – NFC West</div>`;
@@ -435,22 +449,6 @@ function renderSports(data, scores) {
         </div>`;
     }
     if (scores.mlb) html += renderGameRow(scores.mlb);
-  }
-
-  // Piłka nożna
-  if (data.soccer && data.soccer.length > 0) {
-    for (const s of data.soccer) {
-      html += `
-        <div class="sport-league">${esc(s.league)}</div>
-        <div class="sport-row-simple">
-          <span class="sport-rank">${s.rank}.</span>
-          <span class="sport-team">${esc(s.team)}</span>
-          <span class="sport-record">${s.wins}-${s.draws}-${s.losses}</span>
-          <span class="sport-pts">${s.points} pkt</span>
-        </div>`;
-      const leagueKey = s.league_key;
-      if (leagueKey && scores[leagueKey]) html += renderGameRow(scores[leagueKey]);
-    }
   }
 
   el.innerHTML = html || "<div class='cal-placeholder'>Brak danych</div>";
