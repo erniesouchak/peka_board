@@ -476,5 +476,18 @@ function renderGameRow(sc) {
   return html;
 }
 
+// Uruchom przy starcie i odświeżaj co godzinę (standings) / co minutę (scores)
 fetchSports();
-setInterval(fetchSports, 3600000);
+setInterval(async () => {
+  try {
+    const r = await fetch("/api/sports/scores");
+    if (!r.ok) return;
+    const scores = await r.json();
+    // Pobierz też standings ze cache
+    const r2 = await fetch("/api/sports");
+    if (!r2.ok) return;
+    const data = await r2.json();
+    renderSports(data, scores);
+  } catch(e) {}
+}, 60000); // co minutę
+setInterval(fetchSports, 3600000); // standings co godzinę
