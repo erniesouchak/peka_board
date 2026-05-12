@@ -1189,3 +1189,14 @@ body.config-body { overflow: auto; height: auto; }
   font-weight: bold;
 }
 .sport-game-row.sport-draw { color: var(--dim); }
+
+/* ── Strzelcy bramek ─────────────────────────────────────────────────────── */
+.sport-scorers {
+  font-size: 0.68rem;
+  padding: 1px 4px 2px 12px;
+  color: var(--dim);
+  line-height: 1.4;
+}
+
+.sport-scorer-ours { color: var(--green); }
+.sport-scorer-opp  { color: var(--red); }

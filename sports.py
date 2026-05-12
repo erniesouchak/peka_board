@@ -311,14 +311,35 @@ class Sports:
                 name      = ev.get("name", "")
 
                 game = {
-                    "status":   status,
+                    "status":    status,
                     "our_score": our_score,
                     "opp_score": opp_score,
-                    "opp":      opp_name,
-                    "home":     our_home,
-                    "date":     date_str,
-                    "won":      None,
+                    "opp":       opp_name,
+                    "home":      our_home,
+                    "date":      date_str,
+                    "won":       None,
+                    "scorers":   [],
                 }
+
+                # Zbierz strzelców bramek
+                our_team_id = our_team.get("team", {}).get("id", "")
+                for detail in comp.get("details", []):
+                    if not detail.get("scoringPlay"):
+                        continue
+                    athletes = detail.get("athletesInvolved", [])
+                    if not athletes:
+                        continue
+                    scorer_name = athletes[0].get("shortName", "")
+                    minute = detail.get("clock", {}).get("displayValue", "")
+                    own_goal = detail.get("ownGoal", False)
+                    scorer_team = detail.get("team", {}).get("id", "")
+                    is_ours = scorer_team == our_team_id
+                    game["scorers"].append({
+                        "name":     scorer_name,
+                        "minute":   minute,
+                        "is_ours":  is_ours,
+                        "own_goal": own_goal,
+                    })
 
                 if status == "post":
                     try:
