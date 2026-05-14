@@ -139,6 +139,16 @@
 /* Przełączalne sekcje zdjęć */
 .photo-source-panel { display: none; flex-direction: column; gap: 8px; }
 .photo-source-panel.active { display: flex; }
+
+/* Autocomplete drużyn */
+.ac-wrap { position: relative; flex: 1; }
+.ac-drop  { position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+            background: var(--tile); border: 1px solid var(--sep); border-radius: 0 0 5px 5px;
+            max-height: 180px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.ac-drop li { padding: 5px 8px; cursor: pointer; font-size: 0.82rem; white-space: nowrap;
+              overflow: hidden; text-overflow: ellipsis; }
+.ac-drop li:hover, .ac-drop li.ac-active { background: var(--sep); }
+.ac-sub   { color: var(--dim); font-size: 0.72rem; margin-left: 6px; }
 </style>
 </head>
 <body class="config-body">
@@ -256,11 +266,9 @@
         <div class="settings-section-title">NFL</div>
         <div class="settings-row">
           <label>Drużyna</label>
-          <input type="text" id="nfl-team" placeholder="np. Seattle Seahawks">
-        </div>
-        <div class="settings-row">
-          <label>Dywizja</label>
-          <input type="text" id="nfl-division" placeholder="np. NFC West">
+          <div class="ac-wrap">
+            <input type="text" id="nfl-team" placeholder="np. Seattle Seahawks" autocomplete="off">
+          </div>
         </div>
       </div>
 
@@ -269,15 +277,9 @@
         <div class="settings-section-title">MLB</div>
         <div class="settings-row">
           <label>Drużyna</label>
-          <input type="text" id="mlb-team" placeholder="np. Seattle Mariners">
-        </div>
-        <div class="settings-row">
-          <label>Dywizja</label>
-          <input type="text" id="mlb-division" placeholder="np. West">
-        </div>
-        <div class="settings-row">
-          <label>Liga</label>
-          <input type="text" id="mlb-league" placeholder="np. American League">
+          <div class="ac-wrap">
+            <input type="text" id="mlb-team" placeholder="np. Seattle Mariners" autocomplete="off">
+          </div>
         </div>
       </div>
 
@@ -472,11 +474,8 @@ function applySettings(s) {
   // Sport
   const sp = s.sports || {};
   document.getElementById("sports-enabled").checked = (sp.enabled !== false);
-  document.getElementById("nfl-team").value     = sp.nfl_team     || "";
-  document.getElementById("nfl-division").value = sp.nfl_division || "";
-  document.getElementById("mlb-team").value     = sp.mlb_team     || "";
-  document.getElementById("mlb-division").value = sp.mlb_division || "";
-  document.getElementById("mlb-league").value   = sp.mlb_league   || "";
+  document.getElementById("nfl-team").value = sp.nfl_team || "";
+  document.getElementById("mlb-team").value = sp.mlb_team || "";
   renderSoccerList(sp.soccer || []);
 
   // Zdjęcia
@@ -516,12 +515,9 @@ function collectSettings() {
   })).filter(r => r.league && r.team);
 
   const sports = {
-    enabled:      document.getElementById("sports-enabled").checked,
-    nfl_team:     document.getElementById("nfl-team").value.trim(),
-    nfl_division: document.getElementById("nfl-division").value.trim(),
-    mlb_team:     document.getElementById("mlb-team").value.trim(),
-    mlb_division: document.getElementById("mlb-division").value.trim(),
-    mlb_league:   document.getElementById("mlb-league").value.trim(),
+    enabled:  document.getElementById("sports-enabled").checked,
+    nfl_team: document.getElementById("nfl-team").value.trim(),
+    mlb_team: document.getElementById("mlb-team").value.trim(),
     soccer,
   };
 
@@ -599,18 +595,62 @@ function renderSoccerList(items) {
   items.forEach(item => addSoccerRow(item));
 }
 
+function attachAutocomplete(input, fetchFn, onSelect) {
+  let job = null;
+  let drop = null;
+
+  function closeDrop() {
+    if (drop) { drop.remove(); drop = null; }
+  }
+
+  function showDrop(items) {
+    closeDrop();
+    if (!items.length) return;
+    drop = document.createElement("ul");
+    drop.className = "ac-drop";
+    items.forEach(item => {
+      const li = document.createElement("li");
+      li.innerHTML = esc(item.name) + (item.division ? `<span class="ac-sub">${esc(item.division)}</span>` : "");
+      li.addEventListener("mousedown", e => { e.preventDefault(); onSelect(item); closeDrop(); });
+      drop.appendChild(li);
+    });
+    input.parentElement.appendChild(drop);
+  }
+
+  input.addEventListener("input", () => {
+    clearTimeout(job);
+    const q = input.value.trim();
+    if (q.length < 2) { closeDrop(); return; }
+    job = setTimeout(async () => {
+      try {
+        const items = await fetchFn(q);
+        const filtered = items.filter(t => t.name.toLowerCase().includes(q.toLowerCase()));
+        showDrop(filtered.slice(0, 12));
+      } catch(e) {}
+    }, 300);
+  });
+
+  input.addEventListener("blur", () => setTimeout(closeDrop, 200));
+}
+
 function addSoccerRow(item = {}) {
   const el = document.getElementById("soccer-list");
   const div = document.createElement("div");
   div.className = "dyn-item soccer-row";
   div.innerHTML = `
-    <input class="s-league narrow" type="text" placeholder="ID ligi (eng.1)" value="${esc(item.league||'')}">
-    <input class="s-team" type="text" placeholder="Drużyna" value="${esc(item.team||'')}">
+    <input class="s-league narrow" type="text" placeholder="ID ligi (eng.1)" value="${esc(item.league||'')}" autocomplete="off">
+    <div class="ac-wrap" style="flex:1">
+      <input class="s-team" type="text" placeholder="Drużyna" value="${esc(item.team||'')}" autocomplete="off">
+    </div>
     <input class="s-name narrow" type="text" placeholder="Etykieta" value="${esc(item.name||'')}">
     <button class="btn-dyn-rem" onclick="this.parentElement.remove()">✕</button>`;
   el.appendChild(div);
+
   const leagueInput = div.querySelector(".s-league");
+  const teamInput   = div.querySelector(".s-team");
   const nameInput   = div.querySelector(".s-name");
+
+  // Podpowiedź nazwy ligi po wpisaniu ID
   leagueInput.addEventListener("blur", async () => {
     const id = leagueInput.value.trim();
     if (!id || nameInput.value.trim()) return;
@@ -619,6 +659,18 @@ function addSoccerRow(item = {}) {
       if (r.ok) { const d = await r.json(); if (d.name) nameInput.value = d.name; }
     } catch(e) {}
   });
+
+  // Autocomplete drużyny na podstawie ID ligi
+  let soccerTeamsCache = null;
+  attachAutocomplete(teamInput, async () => {
+    const id = leagueInput.value.trim();
+    if (!id) return [];
+    if (!soccerTeamsCache || soccerTeamsCache.league !== id) {
+      const r = await fetch(`/api/sports/soccer-teams?league=${encodeURIComponent(id)}`);
+      soccerTeamsCache = { league: id, data: r.ok ? await r.json() : [] };
+    }
+    return soccerTeamsCache.data;
+  }, item => { teamInput.value = item.name; });
 }
 
 function renderUrlList(items) {
@@ -893,6 +945,38 @@ function esc(str) {
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+
+// ── Autocomplete NFL/MLB ───────────────────────────────────────────────────────
+let _nflTeamsCache = null;
+let _mlbTeamsCache = null;
+
+async function fetchNflTeams() {
+  if (!_nflTeamsCache) {
+    try {
+      const r = await fetch("/api/sports/nfl-teams");
+      _nflTeamsCache = r.ok ? await r.json() : [];
+    } catch(e) { _nflTeamsCache = []; }
+  }
+  return _nflTeamsCache;
+}
+
+async function fetchMlbTeams() {
+  if (!_mlbTeamsCache) {
+    try {
+      const r = await fetch("/api/sports/mlb-teams");
+      _mlbTeamsCache = r.ok ? await r.json() : [];
+    } catch(e) { _mlbTeamsCache = []; }
+  }
+  return _mlbTeamsCache;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const nflInput = document.getElementById("nfl-team");
+  if (nflInput) attachAutocomplete(nflInput, fetchNflTeams, item => { nflInput.value = item.name; });
+
+  const mlbInput = document.getElementById("mlb-team");
+  if (mlbInput) attachAutocomplete(mlbInput, fetchMlbTeams, item => { mlbInput.value = item.name; });
+});
 </script>
 </body>
 </html>

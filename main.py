@@ -375,6 +375,32 @@ async def api_soccer_league_info(id: str):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.get("/api/sports/nfl-teams")
+async def api_nfl_teams():
+    try:
+        return sports_data.get_team_suggestions("nfl")
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/sports/mlb-teams")
+async def api_mlb_teams():
+    try:
+        return sports_data.get_team_suggestions("mlb")
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/sports/soccer-teams")
+async def api_soccer_teams(league: str = ""):
+    try:
+        if not league:
+            return []
+        return sports_data.get_team_suggestions("soccer", league)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/api/sports/scores")
 async def api_sports_scores():
     """Zwróć ostatni i następny mecz dla każdej drużyny."""

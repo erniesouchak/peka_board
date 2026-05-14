@@ -82,6 +82,10 @@ class Sports:
             self._enabled      = bool(sp.get("enabled", True))
             self._last_fetch   = 0.0
             self._cache        = {}
+            try:
+                CACHE_PATH.unlink(missing_ok=True)
+            except Exception:
+                pass
             if self._configured:
                 log.info("Sports: NFL=%s MLB=%s soccer=%d",
                          self._nfl_team, self._mlb_team, len(self._soccer))
@@ -255,6 +259,65 @@ class Sports:
                     }]
         except Exception as e:
             log.warning("Sports: błąd MLB: %s", e)
+        return []
+
+    def get_team_suggestions(self, sport: str, league: str = "") -> list[dict]:
+        """Zwróć listę drużyn z ESPN dla autocomplete w konfiguracji."""
+        try:
+            if sport == "nfl":
+                data = self._espn_get(ESPN_NFL)
+                if not data:
+                    return []
+                results = []
+                for conf in data.get("children", []):
+                    for div in conf.get("children", []):
+                        div_name = div.get("name", "")
+                        for e in div.get("standings", {}).get("entries", []):
+                            name = e.get("team", {}).get("displayName", "")
+                            if name:
+                                results.append({"name": name, "division": div_name})
+                    # Fallback: flat entries at conference level
+                    for e in conf.get("standings", {}).get("entries", []):
+                        name = e.get("team", {}).get("displayName", "")
+                        if name and not any(r["name"] == name for r in results):
+                            results.append({"name": name, "division": ""})
+                return sorted(results, key=lambda x: x["name"])
+
+            elif sport == "mlb":
+                data = self._espn_get(ESPN_MLB)
+                if not data:
+                    return []
+                results = []
+                for lg in data.get("children", []):
+                    abbr = "AL" if "American" in lg.get("name", "") else "NL"
+                    for div in lg.get("children", []):
+                        div_label = f"{abbr} {div.get('name', '')}".strip()
+                        for e in div.get("standings", {}).get("entries", []):
+                            name = e.get("team", {}).get("displayName", "")
+                            if name:
+                                results.append({"name": name, "division": div_label})
+                    for e in lg.get("standings", {}).get("entries", []):
+                        name = e.get("team", {}).get("displayName", "")
+                        if name and not any(r["name"] == name for r in results):
+                            results.append({"name": name, "division": abbr})
+                return sorted(results, key=lambda x: x["name"])
+
+            elif sport == "soccer" and league:
+                data = self._espn_get(ESPN_SOCCER.format(league=league))
+                if not data:
+                    return []
+                results = []
+                try:
+                    entries = data["children"][0]["standings"]["entries"]
+                    for e in entries:
+                        name = e.get("team", {}).get("displayName", "")
+                        if name:
+                            results.append({"name": name})
+                except Exception:
+                    pass
+                return sorted(results, key=lambda x: x["name"])
+        except Exception as ex:
+            log.warning("Sports: get_team_suggestions błąd: %s", ex)
         return []
 
     def get_all(self) -> dict:
