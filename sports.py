@@ -101,6 +101,10 @@ class Sports:
                 if time.time() - cached.get("ts", 0) < CACHE_TTL:
                     self._cache = cached
                     self._last_fetch = cached["ts"]
+                    if "nfl_division" in cached:
+                        self._nfl_division = cached["nfl_division"]
+                    if "mlb_division" in cached:
+                        self._mlb_division = cached["mlb_division"]
                     return
             except Exception:
                 pass
@@ -124,6 +128,8 @@ class Sports:
         if self._mlb_team:
             data["mlb"] = self._fetch_mlb_division()
 
+        data["nfl_division"] = self._nfl_division
+        data["mlb_division"] = self._mlb_division
         self._cache = data
         self._last_fetch = data["ts"]
         try:
