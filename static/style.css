@@ -1079,6 +1079,10 @@ body.config-body { overflow: auto; height: auto; }
   overflow-y: auto;
 }
 
+/* ── Ukrycie widgetu sportu (sports disabled) ────────────────────────────── */
+.col-right.sports-hidden .col-right-top    { flex: 1 !important; }
+.col-right.sports-hidden .col-right-bottom { display: none !important; }
+
 /* ── Widget sportowy ─────────────────────────────────────────────────────── */
 .sports-body {
   padding: 6px 8px;

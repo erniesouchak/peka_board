@@ -352,6 +352,8 @@ async def api_weather():
 @app.get("/api/sports")
 async def api_sports():
     try:
+        if sports_data.is_disabled:
+            return {"disabled": True}
         if not sports_data.is_configured:
             return {"soccer": [], "nfl": [], "mlb": [], "nfl_team": "", "mlb_team": ""}
         return sports_data.get_all()
@@ -363,6 +365,8 @@ async def api_sports():
 async def api_sports_scores():
     """Zwróć ostatni i następny mecz dla każdej drużyny."""
     try:
+        if sports_data.is_disabled:
+            return {}
         if not sports_data.is_configured:
             return {}
         return sports_data.get_scores()

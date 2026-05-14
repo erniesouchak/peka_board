@@ -230,6 +230,17 @@
   <div id="panel-sport" class="cfg-panel">
     <div class="settings-form">
 
+      <!-- Włącz/wyłącz widget sportu -->
+      <div class="settings-section">
+        <div class="settings-section-title">Widget sportu</div>
+        <div class="settings-row">
+          <label>Widoczność</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;min-width:auto">
+            <input type="checkbox" id="sports-enabled"> Włącz widget sportu na tablicy
+          </label>
+        </div>
+      </div>
+
       <!-- Piłka nożna -->
       <div class="settings-section">
         <div class="settings-section-title">Piłka nożna (Soccer)</div>
@@ -460,6 +471,7 @@ async function loadSettings() {
 function applySettings(s) {
   // Sport
   const sp = s.sports || {};
+  document.getElementById("sports-enabled").checked = (sp.enabled !== false);
   document.getElementById("nfl-team").value     = sp.nfl_team     || "";
   document.getElementById("nfl-division").value = sp.nfl_division || "";
   document.getElementById("mlb-team").value     = sp.mlb_team     || "";
@@ -504,6 +516,7 @@ function collectSettings() {
   })).filter(r => r.league && r.team);
 
   const sports = {
+    enabled:      document.getElementById("sports-enabled").checked,
     nfl_team:     document.getElementById("nfl-team").value.trim(),
     nfl_division: document.getElementById("nfl-division").value.trim(),
     mlb_team:     document.getElementById("mlb-team").value.trim(),

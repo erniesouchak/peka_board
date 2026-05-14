@@ -9,6 +9,7 @@ if (!sessionStorage.getItem('reloaded')) {
 const REFRESH_INTERVAL = 60;
 let countdown = REFRESH_INTERVAL;
 let countdownTimer = null;
+let sportsDisabled = false;
 
 // ── Zegar ─────────────────────────────────────────────────────────────────────
 const DAYS_PL   = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
@@ -428,8 +429,29 @@ async function fetchSports() {
 }
 
 function renderSports(data, scores) {
-  const el = document.getElementById("sports-body");
+  const el       = document.getElementById("sports-body");
   if (!el) return;
+
+  // Obsługa wyłączonego widgetu sportu
+  const widget   = document.getElementById("sports-widget");
+  const colRight = document.querySelector(".col-right");
+  if (data.disabled) {
+    if (!sportsDisabled) {
+      sportsDisabled = true;
+      if (widget)   widget.style.display = "none";
+      if (colRight) colRight.classList.add("sports-hidden");
+      fetchDepartures();
+    }
+    return;
+  }
+  // Sport włączony — cofnij ukrycie jeśli wcześniej był wyłączony
+  if (sportsDisabled) {
+    sportsDisabled = false;
+    if (widget)   widget.style.display = "";
+    if (colRight) colRight.classList.remove("sports-hidden");
+    fetchDepartures();
+  }
+
   let html = "";
 
   // Piłka nożna — najpierw

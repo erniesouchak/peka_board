@@ -64,6 +64,7 @@ class Sports:
         self._cache:        dict = {}
         self._last_fetch:   float = 0.0
         self._configured    = False
+        self._enabled:      bool = True
 
     def load_config(self):
         if not BOARD_CONFIG_PATH.exists():
@@ -78,6 +79,7 @@ class Sports:
             self._mlb_league   = sp.get("mlb_league", "American League")
             self._soccer       = sp.get("soccer", [])
             self._configured   = bool(self._nfl_team or self._mlb_team or self._soccer)
+            self._enabled      = bool(sp.get("enabled", True))
             if self._configured:
                 log.info("Sports: NFL=%s MLB=%s soccer=%d",
                          self._nfl_team, self._mlb_team, len(self._soccer))
@@ -362,6 +364,10 @@ class Sports:
     @property
     def is_configured(self) -> bool:
         return self._configured
+
+    @property
+    def is_disabled(self) -> bool:
+        return not self._enabled
 
 
 def _fmt_time(ts: float) -> str:
