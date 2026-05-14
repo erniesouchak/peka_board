@@ -470,8 +470,12 @@ html, body {
   color: var(--gold); cursor: pointer;
   font-size: 0.68rem; text-decoration: none; padding: 0;
 }
-.statusbar .btn-refresh { margin-left: auto; }
-.statusbar .btn-config  { margin-left: 10px; }
+.statusbar .sb-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 /* ── Overlay setup ────────────────────────────────────────────────────────── */
 .overlay-setup {

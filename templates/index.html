@@ -98,14 +98,16 @@
   <span class="sb-ztm">Dane <a href="https://www.ztm.poznan.pl" target="_blank">www.ztm.poznan.pl</a></span>
   <span id="sb-refresh">Odświeżanie…</span>
   <span class="sb-attribution">Weather icons © <a href="https://www.amcharts.com" target="_blank">amCharts</a></span>
-  <button onclick="fetchDepartures()" class="btn-refresh">⟳ Rozkład</button>
-  <button onclick="location.reload()" class="btn-refresh">⟳ Odśwież</button>
-  <a href="/config-page" class="btn-config">⚙ Konfiguracja</a>
-  {% if theme == "dark" %}
-  <a href="/light" class="btn-config">☀ Jasny</a>
-  {% else %}
-  <a href="/dark" class="btn-config">☾ Ciemny</a>
-  {% endif %}
+  <span class="sb-right">
+    <button onclick="fetchDepartures()" class="btn-refresh">⟳ Rozkład</button>
+    <button onclick="location.reload()" class="btn-refresh">⟳ Odśwież</button>
+    <a href="/config-page" class="btn-config">⚙ Konfiguracja</a>
+    {% if theme == "dark" %}
+    <a href="/light" class="btn-config">☀ Jasny</a>
+    {% else %}
+    <a href="/dark" class="btn-config">☾ Ciemny</a>
+    {% endif %}
+  </span>
 </div>
 
 {% if not has_config %}
