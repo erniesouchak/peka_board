@@ -61,6 +61,9 @@ class GTFSStatic:
         self.prev_calendar: dict[str, dict] = {}
         self.prev_calendar_dates: dict[str, dict[str, int]] = {}
 
+        # Mapowanie prev_trip_id → current_trip_id (po route+stop+time)
+        self._overnight_trip_map: dict[str, str] = {}
+
         self._feed_end_date: Optional[date] = None
         self._feed_start_date: Optional[date] = None
         self._loaded = False
@@ -503,6 +506,25 @@ class GTFSStatic:
             self.prev_calendar       = prev_calendar
             self.prev_calendar_dates = prev_cal_dates
 
+            # Indeks bieżącej paczki: (route_short_name, stop_id, departure_time) → trip_id
+            # Służy do mapowania prev_trip_id → current_trip_id dla RT lookupów
+            current_index: dict[tuple, str] = {}
+            for sid2, times in self.stop_times.items():
+                for st in times:
+                    ct = self.trips.get(st["trip_id"])
+                    if not ct:
+                        continue
+                    line2 = self.routes.get(ct["route_id"], "")
+                    dep2  = st.get("departure", "")
+                    try:
+                        h2 = int(dep2.split(":")[0])
+                    except (ValueError, IndexError):
+                        continue
+                    if h2 >= 24:
+                        current_index[(line2, sid2, dep2)] = st["trip_id"]
+
+            self._overnight_trip_map = {}
+
             added = 0
             for row in self._csv_reader(zf, "stop_times.txt"):
                 dep = row.get("departure_time", "").strip()
@@ -561,13 +583,22 @@ class GTFSStatic:
                 stop_name = self.stop_id_to_name.get(sid, "")
                 if stop_name:
                     self.trip_stop_names.setdefault(trip_id, {})[seq_val] = stop_name
+
+                # Mapuj prev_trip_id → current trip_id po (linia, stop, godzina)
+                if prefixed_trip_id not in self._overnight_trip_map:
+                    line_prev = prev_routes.get(trip["route_id"], "")
+                    mapped_id = current_index.get((line_prev, sid, dep))
+                    if mapped_id:
+                        self._overnight_trip_map[prefixed_trip_id] = mapped_id
+
                 added += 1
 
         # Posortuj ponownie po doładowaniu
         for sid in self.stop_times:
             self.stop_times[sid].sort(key=lambda x: x["departure"])
 
-        log.info("Dodano %d nocnych wpisów stop_times", added)
+        log.info("Dodano %d nocnych wpisów stop_times, zmapowano %d trip_idów do bieżącej paczki",
+                 added, len(self._overnight_trip_map))
 
     def _normalize_time(self, gtfs_time: str, base_date: date) -> tuple:
         """Obsługa godzin >24:00 (kursy po północy)."""

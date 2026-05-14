@@ -254,7 +254,6 @@ async def api_debug_rt(stop: str = ""):
     """Diagnostyka RT: porównaj trip_idy z RT feedu z overnight odjazdami na przystanku."""
     try:
         gtfs_rt.refresh_if_stale()
-        sample_trips = list(gtfs_rt._trip_vehicles.keys())[:50]
         overnight_trips = []
         if stop:
             gtfs_static.ensure_loaded()
@@ -269,8 +268,13 @@ async def api_debug_rt(stop: str = ""):
                 }
                 for d in deps if d.get("overnight")
             ]
-        return {"rt_count": len(gtfs_rt._trip_vehicles), "rt_sample": sample_trips,
-                "overnight_departures": overnight_trips}
+        sample_vehicles = [
+            {"trip_id": tid, "label": lbl, "vehicle_id": vid}
+            for tid, (lbl, vid, _) in list(gtfs_rt._trip_vehicles.items())[:30]
+        ]
+        return {"rt_count": len(gtfs_rt._trip_vehicles), "rt_vehicles": sample_vehicles,
+                "overnight_departures": overnight_trips,
+                "overnight_mapped": len(getattr(gtfs_static, "_overnight_trip_map", {}))}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

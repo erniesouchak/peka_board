@@ -128,8 +128,13 @@ class GTFSRealtime:
             trip_id  = dep.get("trip_id", "")
             stop_seq = dep.get("seq", 0)
 
-            # Nocne kursy mają prefix prev_ — szukaj w RT bez tego prefiksu
+            # Nocne kursy: zamapuj prev_trip_id → current_trip_id (jeśli dostępne)
+            # ZTM zmienia trip_idy między paczkami GTFS, więc prev_id ≠ current RT id
             rt_trip_id = trip_id.replace("prev_", "", 1)
+            if trip_id.startswith("prev_") and gtfs_static is not None:
+                mapped = getattr(gtfs_static, "_overnight_trip_map", {}).get(trip_id)
+                if mapped:
+                    rt_trip_id = mapped
 
             vehicle = self._trip_vehicles.get(rt_trip_id)
             if vehicle:
