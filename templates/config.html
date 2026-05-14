@@ -604,11 +604,21 @@ function addSoccerRow(item = {}) {
   const div = document.createElement("div");
   div.className = "dyn-item soccer-row";
   div.innerHTML = `
-    <input class="s-league narrow" type="text" placeholder="ID ligii (eng.1)" value="${esc(item.league||'')}">
+    <input class="s-league narrow" type="text" placeholder="ID ligi (eng.1)" value="${esc(item.league||'')}">
     <input class="s-team" type="text" placeholder="Drużyna" value="${esc(item.team||'')}">
     <input class="s-name narrow" type="text" placeholder="Etykieta" value="${esc(item.name||'')}">
     <button class="btn-dyn-rem" onclick="this.parentElement.remove()">✕</button>`;
   el.appendChild(div);
+  const leagueInput = div.querySelector(".s-league");
+  const nameInput   = div.querySelector(".s-name");
+  leagueInput.addEventListener("blur", async () => {
+    const id = leagueInput.value.trim();
+    if (!id || nameInput.value.trim()) return;
+    try {
+      const r = await fetch(`/api/sports/soccer-league?id=${encodeURIComponent(id)}`);
+      if (r.ok) { const d = await r.json(); if (d.name) nameInput.value = d.name; }
+    } catch(e) {}
+  });
 }
 
 function renderUrlList(items) {

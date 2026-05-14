@@ -361,6 +361,20 @@ async def api_sports():
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.get("/api/sports/soccer-league")
+async def api_soccer_league_info(id: str):
+    """Zwróć nazwę ligi soccer na podstawie ID ESPN (np. eng.1, ned.2)."""
+    try:
+        url = f"https://site.api.espn.com/apis/v2/sports/soccer/{id}/standings"
+        data = sports_data._espn_get(url)
+        if not data:
+            return JSONResponse({"error": "not found"}, status_code=404)
+        name = data.get("name") or data.get("shortName") or id
+        return {"id": id, "name": name}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/api/sports/scores")
 async def api_sports_scores():
     """Zwróć ostatni i następny mecz dla każdej drużyny."""

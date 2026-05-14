@@ -80,6 +80,8 @@ class Sports:
             self._soccer       = sp.get("soccer", [])
             self._configured   = bool(self._nfl_team or self._mlb_team or self._soccer)
             self._enabled      = bool(sp.get("enabled", True))
+            self._last_fetch   = 0.0
+            self._cache        = {}
             if self._configured:
                 log.info("Sports: NFL=%s MLB=%s soccer=%d",
                          self._nfl_team, self._mlb_team, len(self._soccer))
@@ -169,24 +171,41 @@ class Sports:
         if not data:
             return []
         try:
-            all_entries = []
+            # Próba iteracji po dywizjach (konferencja → dywizja → drużyny)
             for conf in data.get("children", []):
-                all_entries.extend(conf.get("standings", {}).get("entries", []))
-
-            for e in all_entries:
-                name = e["team"].get("displayName", "")
-                if self._nfl_team.lower() not in name.lower():
-                    continue
-                stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
-                log.info("Sports: NFL %s %s-%s", name,
-                         int(stats.get("wins", 0)), int(stats.get("losses", 0)))
-                return [{
-                    "team":    name,
-                    "wins":    int(stats.get("wins", 0)),
-                    "losses":  int(stats.get("losses", 0)),
-                    "pct":     round(float(stats.get("winPercent", 0)), 3),
-                    "is_ours": True,
-                }]
+                for div in conf.get("children", []):
+                    for e in div.get("standings", {}).get("entries", []):
+                        name = e["team"].get("displayName", "")
+                        if self._nfl_team.lower() not in name.lower():
+                            continue
+                        stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                        self._nfl_division = div.get("name", self._nfl_division)
+                        log.info("Sports: NFL %s %s-%s (%s)", name,
+                                 int(stats.get("wins", 0)), int(stats.get("losses", 0)),
+                                 self._nfl_division)
+                        return [{
+                            "team":    name,
+                            "wins":    int(stats.get("wins", 0)),
+                            "losses":  int(stats.get("losses", 0)),
+                            "pct":     round(float(stats.get("winPercent", 0)), 3),
+                            "is_ours": True,
+                        }]
+            # Fallback: płaski widok po konferencjach
+            for conf in data.get("children", []):
+                for e in conf.get("standings", {}).get("entries", []):
+                    name = e["team"].get("displayName", "")
+                    if self._nfl_team.lower() not in name.lower():
+                        continue
+                    stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                    log.info("Sports: NFL %s %s-%s", name,
+                             int(stats.get("wins", 0)), int(stats.get("losses", 0)))
+                    return [{
+                        "team":    name,
+                        "wins":    int(stats.get("wins", 0)),
+                        "losses":  int(stats.get("losses", 0)),
+                        "pct":     round(float(stats.get("winPercent", 0)), 3),
+                        "is_ours": True,
+                    }]
         except Exception as e:
             log.warning("Sports: błąd NFL: %s", e)
         return []
@@ -196,25 +215,44 @@ class Sports:
         if not data:
             return []
         try:
-            all_entries = []
+            # Iteracja po ligach → dywizjach → drużynach (auto-detekcja)
             for league in data.get("children", []):
-                if self._mlb_league.lower() in league.get("name", "").lower():
-                    all_entries.extend(league.get("standings", {}).get("entries", []))
-
-            for e in all_entries:
-                name = e["team"].get("displayName", "")
-                if self._mlb_team.lower() not in name.lower():
+                for div in league.get("children", []):
+                    for e in div.get("standings", {}).get("entries", []):
+                        name = e["team"].get("displayName", "")
+                        if self._mlb_team.lower() not in name.lower():
+                            continue
+                        stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                        league_abbr = "AL" if "American" in league.get("name", "") else "NL"
+                        self._mlb_division = f"{league_abbr} {div.get('name', '')}".strip()
+                        log.info("Sports: MLB %s %s-%s (%s)", name,
+                                 int(stats.get("wins", 0)), int(stats.get("losses", 0)),
+                                 self._mlb_division)
+                        return [{
+                            "team":    name,
+                            "wins":    int(stats.get("wins", 0)),
+                            "losses":  int(stats.get("losses", 0)),
+                            "pct":     round(float(stats.get("winPercent", 0)), 3),
+                            "is_ours": True,
+                        }]
+            # Fallback: płaski widok filtrowany po lidze
+            for league in data.get("children", []):
+                if self._mlb_league and self._mlb_league.lower() not in league.get("name", "").lower():
                     continue
-                stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
-                log.info("Sports: MLB %s %s-%s", name,
-                         int(stats.get("wins", 0)), int(stats.get("losses", 0)))
-                return [{
-                    "team":    name,
-                    "wins":    int(stats.get("wins", 0)),
-                    "losses":  int(stats.get("losses", 0)),
-                    "pct":     round(float(stats.get("winPercent", 0)), 3),
-                    "is_ours": True,
-                }]
+                for e in league.get("standings", {}).get("entries", []):
+                    name = e["team"].get("displayName", "")
+                    if self._mlb_team.lower() not in name.lower():
+                        continue
+                    stats = {s["name"]: s.get("value", 0) for s in e.get("stats", [])}
+                    log.info("Sports: MLB %s %s-%s", name,
+                             int(stats.get("wins", 0)), int(stats.get("losses", 0)))
+                    return [{
+                        "team":    name,
+                        "wins":    int(stats.get("wins", 0)),
+                        "losses":  int(stats.get("losses", 0)),
+                        "pct":     round(float(stats.get("winPercent", 0)), 3),
+                        "is_ours": True,
+                    }]
         except Exception as e:
             log.warning("Sports: błąd MLB: %s", e)
         return []

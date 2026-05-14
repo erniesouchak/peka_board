@@ -470,7 +470,7 @@ function renderSports(data, scores) {
 
   // NFL
   if (data.nfl && data.nfl.length > 0) {
-    html += `<div class="sport-league">NFL – NFC West</div>`;
+    html += `<div class="sport-league">NFL${data.nfl_division ? " – " + esc(data.nfl_division) : ""}</div>`;
     for (const t of data.nfl) {
       html += `
         <div class="sport-row-simple">
@@ -483,7 +483,7 @@ function renderSports(data, scores) {
 
   // MLB
   if (data.mlb && data.mlb.length > 0) {
-    html += `<div class="sport-league">MLB – AL West</div>`;
+    html += `<div class="sport-league">MLB${data.mlb_division ? " – " + esc(data.mlb_division) : ""}</div>`;
     for (const t of data.mlb) {
       html += `
         <div class="sport-row-simple">
