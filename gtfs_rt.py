@@ -152,6 +152,28 @@ class GTFSRealtime:
                 else:
                     dep["delay_seconds"] = None
             else:
+                # Fallback dla overnight: szukaj po numerze linii w vehicle_label
+                if dep.get("overnight"):
+                    line = dep.get("line", "")
+                    candidates = [
+                        (lbl, vid, seq)
+                        for lbl, vid, seq in self._trip_vehicles.values()
+                        if line and lbl.split("/")[0] == line
+                    ]
+                    if len(candidates) == 1:
+                        label, vid, cur_seq = candidates[0]
+                        dep["vehicle_label"]   = label
+                        dep["vehicle_id"]      = vid
+                        dep["realtime"]        = True
+                        dep["realtime_approx"] = True
+                        dep["delay_seconds"]   = None
+                        if gtfs_static and cur_seq is not None:
+                            dep["current_stop"] = gtfs_static.get_stop_name_at_seq(
+                                rt_trip_id, cur_seq)
+                        else:
+                            dep["current_stop"] = ""
+                        continue
+
                 dep["vehicle_label"] = ""
                 dep["vehicle_id"]    = ""
                 dep["realtime"]      = False

@@ -249,6 +249,32 @@ async def search_stops(q: str = ""):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.get("/api/debug/rt")
+async def api_debug_rt(stop: str = ""):
+    """Diagnostyka RT: porównaj trip_idy z RT feedu z overnight odjazdami na przystanku."""
+    try:
+        gtfs_rt.refresh_if_stale()
+        sample_trips = list(gtfs_rt._trip_vehicles.keys())[:50]
+        overnight_trips = []
+        if stop:
+            gtfs_static.ensure_loaded()
+            deps = gtfs_static.get_departures_for_stop(stop, limit=20)
+            overnight_trips = [
+                {
+                    "trip_id": d["trip_id"],
+                    "rt_id":   d["trip_id"].replace("prev_", "", 1),
+                    "line":    d["line"],
+                    "time":    d["scheduled_departure_str"],
+                    "found_in_rt": d["trip_id"].replace("prev_", "", 1) in gtfs_rt._trip_vehicles,
+                }
+                for d in deps if d.get("overnight")
+            ]
+        return {"rt_count": len(gtfs_rt._trip_vehicles), "rt_sample": sample_trips,
+                "overnight_departures": overnight_trips}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.get("/api/stops/bollards")
 async def get_bollards(stop_name: str = ""):
     if not stop_name:

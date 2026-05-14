@@ -547,14 +547,20 @@ class GTFSStatic:
                         self.routes[route_id] = prev_routes.get(route_id, "?")
 
                 # Dodaj stop_time
-                sid = row["stop_id"].strip()
+                sid     = row["stop_id"].strip()
+                seq_val = int(row.get("stop_sequence", "0").strip())
                 self.stop_times.setdefault(sid, []).append({
                     "trip_id":   prefixed_trip_id,
                     "arrival":   row.get("arrival_time", "").strip(),
                     "departure": dep,
-                    "seq":       int(row.get("stop_sequence", "0").strip()),
+                    "seq":       seq_val,
                     "overnight": True,
                 })
+                # Populuj trip_stop_names pod oryginalnym trip_id (bez prev_)
+                # bo enrich_departures szuka po rt_trip_id = stripped trip_id
+                stop_name = self.stop_id_to_name.get(sid, "")
+                if stop_name:
+                    self.trip_stop_names.setdefault(trip_id, {})[seq_val] = stop_name
                 added += 1
 
         # Posortuj ponownie po doładowaniu
