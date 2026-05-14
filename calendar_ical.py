@@ -28,9 +28,45 @@ BOARD_CONFIG_PATH = Path("board_config.json")
 CACHE_PATH        = Path("calendar_cache.json")
 CACHE_TTL         = 3600  # 1 godzina
 
-DAYS_PL   = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Niedz"]
+DAYS_PL   = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"]
 MONTHS_PL = ["stycznia","lutego","marca","kwietnia","maja","czerwca",
              "lipca","sierpnia","września","października","listopada","grudnia"]
+
+
+def _easter(year: int) -> date:
+    """Wielkanoc wg algorytmu anonimowego Gregoirańskiego."""
+    a = year % 19
+    b = year // 100
+    c = year % 100
+    d = b // 4
+    e = b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day   = ((h + l - 7 * m + 114) % 31) + 1
+    return date(year, month, day)
+
+
+def is_polish_holiday(d: date) -> bool:
+    """Zwraca True jeśli podana data to polskie święto ustawowo wolne od pracy."""
+    # Stałe święta
+    fixed = {(1, 1), (6, 1), (1, 5), (3, 5), (15, 8), (1, 11), (11, 11), (25, 12), (26, 12)}
+    if (d.day, d.month) in fixed:
+        return True
+    # Ruchome: Wielkanoc, Poniedziałek Wielkanocny, Zielone Świątki, Boże Ciało
+    easter = _easter(d.year)
+    moveable = {
+        easter,
+        easter + timedelta(days=1),   # Poniedziałek Wielkanocny
+        easter + timedelta(days=49),  # Zielone Świątki (Niedziela)
+        easter + timedelta(days=60),  # Boże Ciało
+    }
+    return d in moveable
 
 
 class CalendarICal:
@@ -280,6 +316,7 @@ class CalendarICal:
                 **ev,
                 "date_label": date_label,
                 "days_until": diff,
+                "is_holiday": is_polish_holiday(start_date),
             })
 
         return result[:20]  # max 20 wydarzeń
