@@ -1013,6 +1013,17 @@ body.config-body { overflow: auto; height: auto; }
 }
 .sb-attribution a:hover { opacity: 0.8; }
 
+.sb-ztm {
+  font-size: 0.6rem;
+  color: var(--dim);
+  opacity: 0.6;
+}
+.sb-ztm a {
+  color: var(--dim);
+  text-decoration: none;
+}
+.sb-ztm a:hover { opacity: 0.8; }
+
 /* ── Poprawki czytelności motywu ciemnego ─────────────────────────────────── */
 :root .tile-header                { color: #a0b0cc; }
 :root .bollard-symbol             { color: #6080aa; }
