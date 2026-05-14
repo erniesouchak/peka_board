@@ -70,12 +70,26 @@ function renderDepartures(data) {
     return;
   }
 
-  // Proporcjonalny grid — każdy bollard zajmuje tyle miejsca ile ma wierszy
-  const gridRows = data.map(g => `${g.rows_per_bollard || 2}fr`).join(" ");
+  // Proporcjonalny grid — wiersze tej samej wysokości px we wszystkich bollardach
+  const GAP_PX    = 6;
+  const HEADER_PX = 56; // bollard-header (~30px) + dep-header (~26px)
+  const n         = data.length;
+  const totalRows = data.reduce((s, g) => s + (g.rows_per_bollard || 2), 0);
+  // clientHeight może być 0 przy pierwszym renderze — poczekaj jeden frame i przerysuj
+  const containerH = container.clientHeight;
+  if (containerH === 0) {
+    requestAnimationFrame(() => renderDepartures(data));
+    return;
+  }
+  const availH  = containerH - n * HEADER_PX - (n - 1) * GAP_PX;
+  const rowH    = Math.max(28, Math.floor(availH / totalRows));
+  const gridRows = data.map(g =>
+    `${(g.rows_per_bollard || 2) * rowH + HEADER_PX}px`
+  ).join(" ");
   container.style.display = "grid";
   container.style.gridTemplateRows = gridRows;
   container.style.gridTemplateColumns = "1fr";
-  container.style.gap = "6px";
+  container.style.gap = GAP_PX + "px";
   container.style.height = "100%";
 
   for (const group of data) {
@@ -117,7 +131,10 @@ function renderDepartures(data) {
       const deps = group.departures.slice(0, rows);
       for (const dep of deps) {
         const row = buildDepRow(dep);
-        if (row) body.appendChild(row);
+        if (row) {
+          row.style.height = rowH + "px";
+          body.appendChild(row);
+        }
       }
       tile.appendChild(body);
     }
@@ -373,7 +390,11 @@ function renderCalendar(events) {
     const isToday    = ev.days_until === 0;
     const isTomorrow = ev.days_until === 1;
     const isSoon     = ev.days_until >= 2 && ev.days_until <= 3;
-    const labelClass = isToday ? "today" : isTomorrow ? "tomorrow" : isSoon ? "soon" : "";
+    const isHoliday  = !!ev.is_holiday;
+    const labelClass = isHoliday ? "holiday"
+                     : isToday   ? "today"
+                     : isTomorrow ? "tomorrow"
+                     : isSoon    ? "soon" : "";
     const time = ev.all_day ? "" : `<span class="cal-time">${ev.start_time}</span>`;
 
     return `
@@ -460,21 +481,21 @@ function renderGameRow(sc) {
     if (!g) return "";
     const d  = new Date(g.date);
     const vs = g.home ? `vs ${g.opp}` : `@ ${g.opp}`;
-    let scorersHtml = "";
+    let scorersInline = "";
     if (g.scorers && g.scorers.length > 0) {
-      scorersHtml = `<div class="sport-scorers">` +
+      scorersInline = `<span class="sport-scorers-inline">` +
         g.scorers.map(s => {
           const og = s.own_goal ? " (og)" : "";
           const cls = s.is_ours ? "sport-scorer-ours" : "sport-scorer-opp";
-          return `<span class="${cls}">${esc(s.name)}${og} ${s.minute}</span>`;
-        }).join(" · ") + `</div>`;
+          return `<span class="${cls}">${esc(s.name)}${og} ${s.minute}'</span>`;
+        }).join(" · ") + `</span>`;
     }
     if (g.status === "post") {
       const icon = g.won === true ? "✓" : g.won === false ? "✗" : "=";
       const cls  = g.won === true ? "sport-win" : g.won === false ? "sport-loss" : "sport-draw";
-      return `<div class="sport-game-row ${cls}">${icon} ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span></div>${scorersHtml}`;
+      return `<div class="sport-game-row ${cls}">${icon} ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span>${scorersInline}</div>`;
     } else if (g.status === "in") {
-      return `<div class="sport-game-row sport-live">● LIVE ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span></div>${scorersHtml}`;
+      return `<div class="sport-game-row sport-live">● LIVE ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span>${scorersInline}</div>`;
     } else {
       const time = d.toLocaleString("pl-PL", {weekday:"short", day:"numeric", month:"numeric", hour:"2-digit", minute:"2-digit"});
       return `<div class="sport-game-row sport-next">→ ${vs} ${time}</div>`;

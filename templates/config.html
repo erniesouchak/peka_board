@@ -6,72 +6,556 @@
 <title>Konfiguracja – PEKA Board</title>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+/* ── Zakładki ─────────────────────────────────────────────────────────────── */
+.cfg-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--sep);
+  margin-bottom: 16px;
+}
+.cfg-tab {
+  padding: 8px 18px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--dim);
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+.cfg-tab:hover { background: var(--sep); color: var(--text); }
+.cfg-tab.active {
+  background: var(--bg3);
+  color: var(--gold);
+  font-weight: bold;
+  border-color: var(--sep);
+  border-bottom-color: var(--bg3);
+  margin-bottom: -2px;
+}
+.cfg-panel { display: none; }
+.cfg-panel.active { display: block; }
+
+/* ── Formularz ustawień ───────────────────────────────────────────────────── */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 700px;
+}
+.settings-section {
+  background: var(--bg3);
+  border: 1px solid var(--sep);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.settings-section-title {
+  font-size: 0.72rem;
+  font-weight: bold;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.settings-row label {
+  font-size: 0.85rem;
+  color: var(--dim);
+  min-width: 140px;
+  flex-shrink: 0;
+}
+.settings-row input[type="text"],
+.settings-row input[type="password"] {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--sep);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.88rem;
+  padding: 6px 9px;
+  outline: none;
+}
+.settings-row input:focus { border-color: var(--gold); }
+.settings-row select {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--sep);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.88rem;
+  padding: 6px 9px;
+  outline: none;
+}
+.settings-row select:focus { border-color: var(--gold); }
+
+/* Radio source */
+.source-radios {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.source-radios label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--text);
+  min-width: auto;
+}
+
+/* Dynamiczne listy (soccer, ical) */
+.dyn-list { display: flex; flex-direction: column; gap: 6px; }
+.dyn-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.dyn-item input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--sep);
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 5px 8px;
+  outline: none;
+}
+.dyn-item input:focus { border-color: var(--gold); }
+.dyn-item input.narrow { flex: 0 0 120px; }
+.btn-dyn-add  { background: #1a3a6a; color: var(--text); border: none; border-radius: 5px; cursor: pointer; padding: 5px 10px; font-size: 0.82rem; }
+.btn-dyn-add:hover { background: #2a4a8a; }
+.btn-dyn-rem  { background: #2a1010; color: #e88; border: none; border-radius: 5px; cursor: pointer; padding: 5px 8px; font-size: 0.82rem; }
+.btn-dyn-rem:hover { background: #3a1818; }
+
+/* Przełączalne sekcje zdjęć */
+.photo-source-panel { display: none; flex-direction: column; gap: 8px; }
+.photo-source-panel.active { display: flex; }
+</style>
 </head>
 <body class="config-body">
 
 <div class="config-wrap">
   <div class="config-header">
     <span class="cfg-logo">■ PEKA Board</span>
-    <span class="cfg-title">Konfiguracja przystanków</span>
+    <span class="cfg-title">Konfiguracja</span>
     <a href="/" class="btn-back">← Tablica</a>
   </div>
 
-  <div class="config-main">
-
-    <!-- Lewa: wyszukiwanie -->
-    <div class="cfg-left">
-      <div class="cfg-section-title">1. Wyszukaj przystanek</div>
-      <div class="cfg-search-row">
-        <input type="text" id="inp-search" placeholder="Wpisz nazwę przystanku…"
-               oninput="onSearchType()" autocomplete="off">
-        <span id="search-spinner" class="spinner hidden">⏳</span>
-      </div>
-
-      <div class="cfg-section-title" style="margin-top:10px">Przystanki:</div>
-      <div class="cfg-list-wrap">
-        <ul id="list-stops" class="cfg-list"></ul>
-      </div>
-
-      <div class="cfg-section-title" style="margin-top:10px">2. Wybierz słupek:</div>
-      <div class="cfg-list-wrap cfg-bollard-wrap">
-        <div id="list-bollards"></div>
-      </div>
-
-      <button onclick="addBollard()" class="btn-add">➕ Dodaj do tablicy</button>
-    </div>
-
-    <!-- Środek -->
-    <div class="cfg-arrow">→</div>
-
-    <!-- Prawa: wybrane bollardy -->
-    <div class="cfg-right">
-      <div class="cfg-section-title">
-        3. Tablica
-        <span id="cfg-count" class="cfg-count">0 / 6 słupków · 0 / 16 wierszy</span>
-      </div>
-
-      <div class="cfg-selected-wrap" id="list-selected"></div>
-
-      <div class="cfg-move-row">
-        <button onclick="moveUp()" class="btn-move">⬆ Wyżej</button>
-        <button onclick="moveDown()" class="btn-move">⬇ Niżej</button>
-      </div>
-      <button onclick="removeSelected()" class="btn-remove">🗑 Usuń zaznaczony</button>
-    </div>
-
+  <!-- ── Zakładki ──────────────────────────────────────────────────────────── -->
+  <div class="cfg-tabs">
+    <button class="cfg-tab active" onclick="switchTab('stops')">
+      <i class="fa-solid fa-bus"></i> Przystanki
+    </button>
+    <button class="cfg-tab" onclick="switchTab('sport')">
+      <i class="fa-solid fa-trophy"></i> Sport
+    </button>
+    <button class="cfg-tab" onclick="switchTab('photos')">
+      <i class="fa-solid fa-image"></i> Zdjęcia
+    </button>
+    <button class="cfg-tab" onclick="switchTab('calendar')">
+      <i class="fa-solid fa-calendar-days"></i> Kalendarz
+    </button>
   </div>
 
-  <div class="cfg-footer">
-    <button onclick="saveConfig()" class="btn-save">✔ Zapisz i wróć do tablicy</button>
-    <span id="cfg-msg" class="cfg-msg"></span>
+  <!-- ════════════════════════════════════════════════════════════════════════
+       ZAKŁADKA: PRZYSTANKI (istniejąca logika)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-stops" class="cfg-panel active">
+    <div class="config-main">
+
+      <!-- Lewa: wyszukiwanie -->
+      <div class="cfg-left">
+        <div class="cfg-section-title">1. Wyszukaj przystanek</div>
+        <div class="cfg-search-row">
+          <input type="text" id="inp-search" placeholder="Wpisz nazwę przystanku…"
+                 oninput="onSearchType()" autocomplete="off">
+          <span id="search-spinner" class="spinner hidden">⏳</span>
+        </div>
+
+        <div class="cfg-section-title" style="margin-top:10px">Przystanki:</div>
+        <div class="cfg-list-wrap">
+          <ul id="list-stops" class="cfg-list"></ul>
+        </div>
+
+        <div class="cfg-section-title" style="margin-top:10px">2. Wybierz słupek:</div>
+        <div class="cfg-list-wrap cfg-bollard-wrap">
+          <div id="list-bollards"></div>
+        </div>
+
+        <button onclick="addBollard()" class="btn-add">➕ Dodaj do tablicy</button>
+      </div>
+
+      <!-- Środek -->
+      <div class="cfg-arrow">→</div>
+
+      <!-- Prawa: wybrane bollardy -->
+      <div class="cfg-right">
+        <div class="cfg-section-title">
+          3. Tablica
+          <span id="cfg-count" class="cfg-count">0 / 6 słupków · 0 / 16 wierszy</span>
+        </div>
+
+        <div class="cfg-selected-wrap" id="list-selected"></div>
+
+        <div class="cfg-move-row">
+          <button onclick="moveUp()" class="btn-move">⬆ Wyżej</button>
+          <button onclick="moveDown()" class="btn-move">⬇ Niżej</button>
+        </div>
+        <button onclick="removeSelected()" class="btn-remove">🗑 Usuń zaznaczony</button>
+      </div>
+
+    </div>
+
+    <div class="cfg-footer">
+      <button onclick="saveConfig()" class="btn-save">✔ Zapisz przystanki i wróć do tablicy</button>
+      <span id="cfg-msg" class="cfg-msg"></span>
+    </div>
   </div>
-</div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       ZAKŁADKA: SPORT
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-sport" class="cfg-panel">
+    <div class="settings-form">
+
+      <!-- Piłka nożna -->
+      <div class="settings-section">
+        <div class="settings-section-title">Piłka nożna (Soccer)</div>
+        <div id="soccer-list" class="dyn-list"></div>
+        <button class="btn-dyn-add" onclick="addSoccerRow()">➕ Dodaj ligę</button>
+        <div style="font-size:0.75rem;color:var(--dim)">
+          ID ligi (np. <code>eng.1</code>, <code>ned.2</code>) · Nazwa drużyny · Etykieta wyświetlana
+        </div>
+      </div>
+
+      <!-- NFL -->
+      <div class="settings-section">
+        <div class="settings-section-title">NFL</div>
+        <div class="settings-row">
+          <label>Drużyna</label>
+          <input type="text" id="nfl-team" placeholder="np. Seattle Seahawks">
+        </div>
+        <div class="settings-row">
+          <label>Dywizja</label>
+          <input type="text" id="nfl-division" placeholder="np. NFC West">
+        </div>
+      </div>
+
+      <!-- MLB -->
+      <div class="settings-section">
+        <div class="settings-section-title">MLB</div>
+        <div class="settings-row">
+          <label>Drużyna</label>
+          <input type="text" id="mlb-team" placeholder="np. Seattle Mariners">
+        </div>
+        <div class="settings-row">
+          <label>Dywizja</label>
+          <input type="text" id="mlb-division" placeholder="np. West">
+        </div>
+        <div class="settings-row">
+          <label>Liga</label>
+          <input type="text" id="mlb-league" placeholder="np. American League">
+        </div>
+      </div>
+
+    </div>
+    <div class="cfg-footer">
+      <button onclick="saveSettings()" class="btn-save">✔ Zapisz ustawienia sportu</button>
+      <span id="sport-msg" class="cfg-msg"></span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       ZAKŁADKA: ZDJĘCIA
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-photos" class="cfg-panel">
+    <div class="settings-form">
+
+      <div class="settings-section">
+        <div class="settings-section-title">Źródło zdjęć</div>
+        <div class="source-radios">
+          <label>
+            <input type="radio" name="photo-source" value="synology" onchange="onPhotoSourceChange()">
+            Synology Photos
+          </label>
+          <label>
+            <input type="radio" name="photo-source" value="local_folder" onchange="onPhotoSourceChange()">
+            Lokalny folder
+          </label>
+          <label>
+            <input type="radio" name="photo-source" value="url_list" onchange="onPhotoSourceChange()">
+            Lista URL
+          </label>
+        </div>
+      </div>
+
+      <!-- Synology -->
+      <div class="settings-section photo-source-panel" id="photo-panel-synology">
+        <div class="settings-section-title">Synology Photos</div>
+        <div class="settings-row">
+          <label>Adres NAS</label>
+          <input type="text" id="syn-url" placeholder="http://192.168.1.100:5000">
+        </div>
+        <div class="settings-row">
+          <label>Passphrase albumu</label>
+          <input type="text" id="syn-pass" placeholder="IxIVFeayG">
+        </div>
+      </div>
+
+      <!-- Lokalny folder -->
+      <div class="settings-section photo-source-panel" id="photo-panel-local">
+        <div class="settings-section-title">Lokalny folder</div>
+        <div class="settings-row">
+          <label>Ścieżka folderu</label>
+          <input type="text" id="local-path" placeholder="/home/ernie/photos">
+        </div>
+        <div style="font-size:0.75rem;color:var(--dim)">
+          Obsługiwane formaty: jpg, jpeg, png, webp, gif, bmp
+        </div>
+      </div>
+
+      <!-- Lista URL -->
+      <div class="settings-section photo-source-panel" id="photo-panel-urls">
+        <div class="settings-section-title">Lista URL zdjęć</div>
+        <div id="url-list" class="dyn-list"></div>
+        <button class="btn-dyn-add" onclick="addUrlRow()">➕ Dodaj URL</button>
+      </div>
+
+    </div>
+    <div class="cfg-footer">
+      <button onclick="saveSettings()" class="btn-save">✔ Zapisz ustawienia zdjęć</button>
+      <span id="photos-msg" class="cfg-msg"></span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       ZAKŁADKA: KALENDARZ
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-calendar" class="cfg-panel">
+    <div class="settings-form">
+
+      <div class="settings-section">
+        <div class="settings-section-title">Adresy iCal</div>
+        <div id="ical-list" class="dyn-list"></div>
+        <button class="btn-dyn-add" onclick="addIcalRow()">➕ Dodaj adres iCal</button>
+        <div style="font-size:0.75rem;color:var(--dim)">
+          Obsługiwany: Google Calendar, Apple Calendar, Synology Calendar, dowolny URL .ics
+        </div>
+      </div>
+
+    </div>
+    <div class="cfg-footer">
+      <button onclick="saveSettings()" class="btn-save">✔ Zapisz ustawienia kalendarza</button>
+      <span id="cal-msg" class="cfg-msg"></span>
+    </div>
+  </div>
+
+</div><!-- /.config-wrap -->
 
 <script>
+// ═════════════════════════════════════════════════════════════════════════════
+// ZAKŁADKI
+// ═════════════════════════════════════════════════════════════════════════════
+
+const TAB_IDS = ["stops","sport","photos","calendar"];
+let activeTab = "stops";
+
+function switchTab(id) {
+  activeTab = id;
+  TAB_IDS.forEach(t => {
+    document.querySelectorAll(".cfg-tab")[TAB_IDS.indexOf(t)].classList.toggle("active", t === id);
+    document.getElementById("panel-" + t).classList.toggle("active", t === id);
+  });
+  if (id !== "stops" && !settingsLoaded) loadSettings();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// USTAWIENIA (sport / zdjęcia / kalendarz)
+// ═════════════════════════════════════════════════════════════════════════════
+
+let settingsLoaded = false;
+let currentSettings = {};
+
+async function loadSettings() {
+  try {
+    const r = await fetch("/api/board-settings");
+    if (!r.ok) { console.error("Błąd ładowania ustawień"); return; }
+    currentSettings = await r.json();
+    settingsLoaded = true;
+    applySettings(currentSettings);
+  } catch(e) {
+    console.error("Błąd ładowania ustawień:", e);
+  }
+}
+
+function applySettings(s) {
+  // Sport
+  const sp = s.sports || {};
+  document.getElementById("nfl-team").value     = sp.nfl_team     || "";
+  document.getElementById("nfl-division").value = sp.nfl_division || "";
+  document.getElementById("mlb-team").value     = sp.mlb_team     || "";
+  document.getElementById("mlb-division").value = sp.mlb_division || "";
+  document.getElementById("mlb-league").value   = sp.mlb_league   || "";
+  renderSoccerList(sp.soccer || []);
+
+  // Zdjęcia
+  const ph = s.photos || {};
+  const syn = s.synology || {};
+  const source = ph.source || "synology";
+  const radio = document.querySelector(`input[name="photo-source"][value="${source}"]`);
+  if (radio) radio.checked = true;
+  document.getElementById("syn-url").value   = syn.url         || "";
+  document.getElementById("syn-pass").value  = syn.passphrase  || "";
+  document.getElementById("local-path").value = ph.local_path  || "";
+  renderUrlList(ph.urls || []);
+  onPhotoSourceChange();
+
+  // Kalendarz
+  const cal = s.calendar || {};
+  const urls = cal.ical_urls || (cal.ical_url ? [cal.ical_url] : []);
+  renderIcalList(urls);
+}
+
+function collectSettings() {
+  // Sport
+  const soccerRows = [...document.querySelectorAll(".soccer-row")];
+  const soccer = soccerRows.map(row => ({
+    league: row.querySelector(".s-league").value.trim(),
+    team:   row.querySelector(".s-team").value.trim(),
+    name:   row.querySelector(".s-name").value.trim(),
+  })).filter(r => r.league && r.team);
+
+  const sports = {
+    nfl_team:     document.getElementById("nfl-team").value.trim(),
+    nfl_division: document.getElementById("nfl-division").value.trim(),
+    mlb_team:     document.getElementById("mlb-team").value.trim(),
+    mlb_division: document.getElementById("mlb-division").value.trim(),
+    mlb_league:   document.getElementById("mlb-league").value.trim(),
+    soccer,
+  };
+
+  // Zdjęcia
+  const source = document.querySelector('input[name="photo-source"]:checked')?.value || "synology";
+  const photos = { source };
+  if (source === "local_folder") {
+    photos.local_path = document.getElementById("local-path").value.trim();
+  } else if (source === "url_list") {
+    photos.urls = [...document.querySelectorAll(".url-row input")]
+      .map(i => i.value.trim()).filter(Boolean);
+  }
+
+  // Synology (zawsze zapisz bo może wrócić do tego źródła)
+  const synology = {
+    url:        document.getElementById("syn-url").value.trim(),
+    passphrase: document.getElementById("syn-pass").value.trim(),
+  };
+
+  // Kalendarz
+  const ical_urls = [...document.querySelectorAll(".ical-row input")]
+    .map(i => i.value.trim()).filter(Boolean);
+  const calendar = { ical_urls };
+
+  return { sports, photos, synology, calendar };
+}
+
+async function saveSettings() {
+  const data = collectSettings();
+  try {
+    const r = await fetch("/api/board-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const msgId = activeTab === "sport" ? "sport-msg"
+                : activeTab === "photos" ? "photos-msg" : "cal-msg";
+    if (r.ok) {
+      showMsgById(msgId, "✔ Zapisano");
+    } else {
+      showMsgById(msgId, "⚠ Błąd zapisu");
+    }
+  } catch(e) {
+    showMsgById(activeTab === "sport" ? "sport-msg"
+              : activeTab === "photos" ? "photos-msg" : "cal-msg", "⚠ Błąd sieci");
+  }
+}
+
+// ── Dynamiczne listy ──────────────────────────────────────────────────────────
+
+function renderSoccerList(items) {
+  const el = document.getElementById("soccer-list");
+  el.innerHTML = "";
+  items.forEach(item => addSoccerRow(item));
+}
+
+function addSoccerRow(item = {}) {
+  const el = document.getElementById("soccer-list");
+  const div = document.createElement("div");
+  div.className = "dyn-item soccer-row";
+  div.innerHTML = `
+    <input class="s-league narrow" type="text" placeholder="ID ligii (eng.1)" value="${esc(item.league||'')}">
+    <input class="s-team" type="text" placeholder="Drużyna" value="${esc(item.team||'')}">
+    <input class="s-name narrow" type="text" placeholder="Etykieta" value="${esc(item.name||'')}">
+    <button class="btn-dyn-rem" onclick="this.parentElement.remove()">✕</button>`;
+  el.appendChild(div);
+}
+
+function renderUrlList(items) {
+  const el = document.getElementById("url-list");
+  el.innerHTML = "";
+  items.forEach(url => addUrlRow(url));
+}
+
+function addUrlRow(url = "") {
+  const el = document.getElementById("url-list");
+  const div = document.createElement("div");
+  div.className = "dyn-item url-row";
+  div.innerHTML = `
+    <input type="text" placeholder="https://example.com/zdjecie.jpg" value="${esc(url)}">
+    <button class="btn-dyn-rem" onclick="this.parentElement.remove()">✕</button>`;
+  el.appendChild(div);
+}
+
+function renderIcalList(items) {
+  const el = document.getElementById("ical-list");
+  el.innerHTML = "";
+  items.forEach(url => addIcalRow(url));
+}
+
+function addIcalRow(url = "") {
+  const el = document.getElementById("ical-list");
+  const div = document.createElement("div");
+  div.className = "dyn-item ical-row";
+  div.innerHTML = `
+    <input type="text" placeholder="https://calendar.google.com/calendar/ical/..." value="${esc(url)}">
+    <button class="btn-dyn-rem" onclick="this.parentElement.remove()">✕</button>`;
+  el.appendChild(div);
+}
+
+// ── Przełącznik źródła zdjęć ──────────────────────────────────────────────────
+
+function onPhotoSourceChange() {
+  const source = document.querySelector('input[name="photo-source"]:checked')?.value || "synology";
+  document.querySelectorAll(".photo-source-panel").forEach(p => p.classList.remove("active"));
+  const panel = document.getElementById("photo-panel-" + source);
+  if (panel) panel.classList.add("active");
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PRZYSTANKI (istniejąca logika — bez zmian)
+// ═════════════════════════════════════════════════════════════════════════════
+
 let MAX_BOLLARDS = 6;
 let MAX_ROWS     = 16;
 
-// Pobierz limity z konfiguracji
 fetch("/api/board-config").then(r => r.json()).then(cfg => {
   MAX_BOLLARDS = cfg.max_bollards;
   MAX_ROWS     = cfg.max_rows;
@@ -85,12 +569,9 @@ let searchJob      = null;
 let selectedBollard = null;
 let selectedIdx    = -1;
 
-// Zapewnij że każdy bollard ma rows
 selectedBollards = selectedBollards.map(b => ({ ...b, rows: b.rows || 2 }));
-
 renderSelected();
 
-// ── Wyszukiwanie ──────────────────────────────────────────────────────────────
 function onSearchType() {
   clearTimeout(searchJob);
   searchJob = setTimeout(doSearch, 400);
@@ -140,15 +621,12 @@ async function onStopClick(idx) {
 function renderBollards(bollards) {
   const wrap = document.getElementById("list-bollards");
   wrap.innerHTML = "";
-  if (!bollards.length) {
-    wrap.innerHTML = "<div class='cfg-empty'>—</div>"; return;
-  }
+  if (!bollards.length) { wrap.innerHTML = "<div class='cfg-empty'>—</div>"; return; }
 
   bollards.forEach((b, i) => {
     const div = document.createElement("div");
     div.className = "boll-card";
 
-    // Linie z kierunkami
     const lwd = b.lines_with_dirs || b.lines.map(l => ({ line: l, directions: [] }));
     const linesHtml = lwd.map(ld => {
       const dirs = ld.directions && ld.directions.length
@@ -174,7 +652,6 @@ function renderBollards(bollards) {
   });
 }
 
-// ── Zarządzanie listą ─────────────────────────────────────────────────────────
 function addBollard() {
   if (!selectedBollard) { showMsg("Zaznacz słupek z listy."); return; }
   if (selectedBollards.length >= MAX_BOLLARDS) {
@@ -253,7 +730,6 @@ function renderSelected() {
     wrap.appendChild(card);
   });
 
-  // Licznik
   const cnt = document.getElementById("cfg-count");
   const rowsColor = totalRows >= MAX_ROWS ? "#e74c3c" : "#f5a623";
   const bollColor = selectedBollards.length >= MAX_BOLLARDS ? "#e74c3c" : "#f5a623";
@@ -262,12 +738,10 @@ function renderSelected() {
 }
 
 function highlightSelected(idx) {
-  document.querySelectorAll(".sel-card").forEach((c, i) => {
-    c.classList.toggle("active", i === idx);
-  });
+  document.querySelectorAll(".sel-card").forEach((c, i) =>
+    c.classList.toggle("active", i === idx));
 }
 
-// ── Zapis ─────────────────────────────────────────────────────────────────────
 async function saveConfig() {
   if (!selectedBollards.length) { showMsg("Dodaj co najmniej jeden słupek."); return; }
   const r = await fetch("/api/config", {
@@ -279,7 +753,10 @@ async function saveConfig() {
   else showMsg("Błąd zapisu.");
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═════════════════════════════════════════════════════════════════════════════
+
 function highlightList(id, idx) {
   document.querySelectorAll(`#${id} li`).forEach((li, i) =>
     li.classList.toggle("active", i === idx));
@@ -289,6 +766,19 @@ function showMsg(msg) {
   const el = document.getElementById("cfg-msg");
   el.textContent = msg;
   setTimeout(() => { el.textContent = ""; }, 3000);
+}
+
+function showMsgById(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ""; }, 3000);
+}
+
+function esc(str) {
+  return String(str ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 </script>
 </body>

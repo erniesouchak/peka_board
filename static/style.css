@@ -293,10 +293,11 @@ html, body {
 }
 
 .dep-row {
-  flex: 1;
+  flex-shrink: 0;
   border-bottom: 1px solid var(--sep);
   display: flex;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .dep-row:last-child { border-bottom: none; }
@@ -938,6 +939,7 @@ body.config-body { overflow: auto; height: auto; }
 .cal-date-label.today    { color: var(--red);  }
 .cal-date-label.tomorrow { color: var(--gold); }
 .cal-date-label.soon     { color: var(--blue); }
+.cal-date-label.holiday  { color: var(--red); font-weight: bold; }
 
 .cal-event-main {
   display: flex;
@@ -1177,6 +1179,10 @@ body.config-body { overflow: auto; height: auto; }
   font-size: 0.72rem;
   padding: 1px 4px 1px 12px;
   color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
 }
 
 .sport-game-row.sport-win   { color: var(--green); }
@@ -1190,12 +1196,15 @@ body.config-body { overflow: auto; height: auto; }
 }
 .sport-game-row.sport-draw { color: var(--dim); }
 
-/* ── Strzelcy bramek ─────────────────────────────────────────────────────── */
-.sport-scorers {
+/* ── Strzelcy bramek (inline, w tej samej linii co wynik) ────────────────── */
+.sport-scorers-inline {
   font-size: 0.68rem;
-  padding: 1px 4px 2px 12px;
   color: var(--dim);
-  line-height: 1.4;
+  margin-left: 6px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sport-scorer-ours { color: var(--green); }

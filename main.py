@@ -11,15 +11,18 @@ from datetime import datetime, date
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Request
+import secrets
+
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from gtfs_static import GTFSStatic
 from gtfs_rt import GTFSRealtime
 from waste_schedule import WasteSchedule
-from synology_photos import SynologyPhotos
+from photos import PhotoManager
 from weather import Weather
 from calendar_ical import CalendarICal
 from sports import Sports
@@ -36,13 +39,45 @@ app = FastAPI(title="PEKA Board")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+_http_security = HTTPBasic()
+
 gtfs_static    = GTFSStatic()
 gtfs_rt        = GTFSRealtime()
 waste_schedule = WasteSchedule()
-synology       = SynologyPhotos()
+photos         = PhotoManager()
 weather        = Weather()
 calendar       = CalendarICal()
 sports_data    = Sports()
+
+
+def _get_config_password() -> str:
+    """Wczytaj hasło do config-page z board_config.json."""
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+            pwd = cfg.get("config_password", "")
+            if pwd:
+                return pwd
+        except Exception:
+            pass
+    return "admin"  # domyślne, jeśli brak konfiguracji
+
+
+def verify_auth(credentials: HTTPBasicCredentials = Depends(_http_security)):
+    """Dependency sprawdzające HTTP Basic Auth dla config-page."""
+    correct_password = _get_config_password()
+    correct_username = "peka"
+    ok = (
+        secrets.compare_digest(credentials.username.encode(), correct_username.encode())
+        and secrets.compare_digest(credentials.password.encode(), correct_password.encode())
+    )
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowe hasło",
+            headers={"WWW-Authenticate": 'Basic realm="PEKA Board Config"'},
+        )
+    return credentials
 
 
 def load_config() -> list[dict]:
@@ -70,7 +105,7 @@ async def startup():
     except Exception as e:
         log.error("Błąd ładowania harmonogramu wywozów: %s", e)
     try:
-        synology.load_config()
+        photos.load_config()
         weather.load_config()
         calendar.load_config()
         sports_data.load_config()
@@ -129,7 +164,7 @@ async def dashboard_dark(request: Request):
 
 
 @app.get("/config-page", response_class=HTMLResponse)
-async def config_page(request: Request):
+async def config_page(request: Request, _auth=Depends(verify_auth)):
     config = load_config()
     return templates.TemplateResponse(request, "config.html", {
         "current_config": json.dumps(config, ensure_ascii=False),
@@ -142,12 +177,59 @@ async def api_get_config():
 
 
 @app.post("/api/config")
-async def api_set_config(request: Request):
+async def api_set_config(request: Request, _auth=Depends(verify_auth)):
     data = await request.json()
     if not isinstance(data, list):
         return JSONResponse({"error": "Oczekiwano listy bollardów"}, status_code=400)
     save_config(data)
     return {"ok": True, "count": len(data)}
+
+
+# ── Ustawienia ogólne (sport / zdjęcia / kalendarz) ────────────────────────────
+
+@app.get("/api/board-settings")
+async def api_get_board_settings(_auth=Depends(verify_auth)):
+    """Zwróć edytowalne sekcje board_config.json (bez hasła)."""
+    if not BOARD_CONFIG_PATH.exists():
+        return {"sports": {}, "photos": {}, "calendar": {}, "synology": {}}
+    try:
+        cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+        return {
+            "sports":   cfg.get("sports",   {}),
+            "photos":   cfg.get("photos",   {}),
+            "calendar": cfg.get("calendar", {}),
+            "synology": cfg.get("synology", {}),
+        }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/board-settings")
+async def api_save_board_settings(request: Request, _auth=Depends(verify_auth)):
+    """Zapisz sekcje sports/photos/calendar/synology do board_config.json."""
+    data = await request.json()
+    # Wczytaj istniejący config lub zacznij od pustego słownika
+    cfg: dict = {}
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    # Nadpisz tylko przesłane sekcje
+    for section in ("sports", "photos", "calendar", "synology"):
+        if section in data:
+            cfg[section] = data[section]
+    BOARD_CONFIG_PATH.write_text(
+        json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    # Przeładuj moduły
+    try:
+        photos.load_config()
+        calendar.load_config()
+        sports_data.load_config()
+    except Exception as e:
+        log.warning("Błąd przeładowania po zapisie ustawień: %s", e)
+    return {"ok": True}
 
 
 @app.get("/api/stops/search")
@@ -284,18 +366,35 @@ async def api_sports_scores():
 
 @app.get("/api/photo/random")
 async def api_photo_random():
-    if not synology.is_configured:
-        return JSONResponse({"error": "Synology Photos nie skonfigurowany"}, status_code=503)
-    photo = synology.get_random_photo()
+    if not photos.is_configured:
+        return JSONResponse({"error": "Źródło zdjęć nie skonfigurowane"}, status_code=503)
+    photo = photos.get_random_photo()
     if not photo:
         return JSONResponse({"error": "Brak zdjęć"}, status_code=404)
     return photo
 
 
+@app.get("/api/photo/local/{filename}")
+async def api_photo_local(filename: str):
+    """Serwuj zdjęcie z lokalnego folderu."""
+    from fastapi.responses import FileResponse
+    import re
+    # Zabezpieczenie przed path traversal
+    if re.search(r"[/\\]|\.\.", filename):
+        return JSONResponse({"error": "Nieprawidłowa nazwa pliku"}, status_code=400)
+    if photos.local_path is None:
+        return JSONResponse({"error": "Lokalny folder nie skonfigurowany"}, status_code=503)
+    file_path = photos.local_path / filename
+    if not file_path.is_file():
+        return JSONResponse({"error": "Nie znaleziono pliku"}, status_code=404)
+    return FileResponse(str(file_path))
+
+
 @app.get("/api/photo/{photo_id}")
 async def api_photo_proxy(photo_id: int, cache_key: str = ""):
+    """Proxy zdjęcia z Synology."""
     from fastapi.responses import Response
-    data = synology.fetch_photo_bytes(photo_id, cache_key)
+    data = photos.fetch_photo_bytes(photo_id, cache_key)
     if not data:
         return JSONResponse({"error": "Nie znaleziono zdjęcia"}, status_code=404)
     return Response(content=data, media_type="image/jpeg")
