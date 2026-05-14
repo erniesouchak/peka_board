@@ -164,6 +164,9 @@
     <button class="cfg-tab" onclick="switchTab('calendar')">
       <i class="fa-solid fa-calendar-days"></i> Kalendarz
     </button>
+    <button class="cfg-tab" onclick="switchTab('settings')">
+      <i class="fa-solid fa-sliders"></i> Ustawienia
+    </button>
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════════════
@@ -359,6 +362,63 @@
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════════════════════════════════
+       ZAKŁADKA: USTAWIENIA
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-settings" class="cfg-panel">
+    <div class="settings-form">
+
+      <!-- Pogoda -->
+      <div class="settings-section">
+        <div class="settings-section-title">Pogoda — lokalizacja</div>
+        <div class="settings-row">
+          <label>Szerokość geogr. (lat)</label>
+          <input type="text" id="weather-lat" placeholder="52.4064">
+        </div>
+        <div class="settings-row">
+          <label>Długość geogr. (lon)</label>
+          <input type="text" id="weather-lon" placeholder="16.9252">
+        </div>
+        <div style="font-size:0.75rem;color:var(--dim)">
+          Współrzędne z Google Maps — kliknij prawym na mapie → „Co tu jest?"
+        </div>
+      </div>
+
+      <!-- Tablica odjazdów -->
+      <div class="settings-section">
+        <div class="settings-section-title">Tablica odjazdów — limity</div>
+        <div class="settings-row">
+          <label>Maks. przystanków</label>
+          <input type="text" id="board-bollards" placeholder="6">
+        </div>
+        <div class="settings-row">
+          <label>Maks. wierszy</label>
+          <input type="text" id="board-rows" placeholder="16">
+        </div>
+        <div style="font-size:0.75rem;color:var(--dim)">
+          Łączna liczba wierszy odjazdów na tablicy (suma wszystkich przystanków)
+        </div>
+      </div>
+
+      <!-- Bezpieczeństwo -->
+      <div class="settings-section">
+        <div class="settings-section-title">Bezpieczeństwo</div>
+        <div class="settings-row">
+          <label>Nowe hasło</label>
+          <input type="password" id="new-password" placeholder="(puste = bez zmiany)" autocomplete="new-password">
+        </div>
+        <div style="font-size:0.75rem;color:var(--dim)">
+          Hasło do strony konfiguracji (login: <code>peka</code>). Zostaw puste żeby nie zmieniać.
+        </div>
+      </div>
+
+    </div>
+    <div class="cfg-footer">
+      <button onclick="saveSettings()" class="btn-save">✔ Zapisz ustawienia</button>
+      <span id="settings-msg" class="cfg-msg"></span>
+    </div>
+  </div>
+
 </div><!-- /.config-wrap -->
 
 <script>
@@ -366,7 +426,7 @@
 // ZAKŁADKI
 // ═════════════════════════════════════════════════════════════════════════════
 
-const TAB_IDS = ["stops","sport","photos","calendar"];
+const TAB_IDS = ["stops","sport","photos","calendar","settings"];
 let activeTab = "stops";
 
 function switchTab(id) {
@@ -423,6 +483,15 @@ function applySettings(s) {
   const cal = s.calendar || {};
   const urls = cal.ical_urls || (cal.ical_url ? [cal.ical_url] : []);
   renderIcalList(urls);
+
+  // Ustawienia ogólne
+  const wth = s.weather || {};
+  const brd = s.board   || {};
+  document.getElementById("weather-lat").value   = wth.lat ?? "52.4064";
+  document.getElementById("weather-lon").value   = wth.lon ?? "16.9252";
+  document.getElementById("board-bollards").value = brd.max_bollards ?? "6";
+  document.getElementById("board-rows").value     = brd.max_rows     ?? "16";
+  document.getElementById("new-password").value   = "";
 }
 
 function collectSettings() {
@@ -464,7 +533,18 @@ function collectSettings() {
     .map(i => i.value.trim()).filter(Boolean);
   const calendar = { ical_urls };
 
-  return { sports, photos, synology, calendar };
+  // Ustawienia ogólne
+  const weather = {
+    lat: parseFloat(document.getElementById("weather-lat").value) || 52.4064,
+    lon: parseFloat(document.getElementById("weather-lon").value) || 16.9252,
+  };
+  const board = {
+    max_bollards: parseInt(document.getElementById("board-bollards").value, 10) || 6,
+    max_rows:     parseInt(document.getElementById("board-rows").value,     10) || 16,
+  };
+  const config_password = document.getElementById("new-password").value.trim();
+
+  return { sports, photos, synology, calendar, weather, board, config_password };
 }
 
 async function saveSettings() {
@@ -475,16 +555,26 @@ async function saveSettings() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    const msgId = activeTab === "sport" ? "sport-msg"
-                : activeTab === "photos" ? "photos-msg" : "cal-msg";
+    const msgId = activeTab === "sport"     ? "sport-msg"
+                : activeTab === "photos"    ? "photos-msg"
+                : activeTab === "calendar"  ? "cal-msg"
+                : activeTab === "settings"  ? "settings-msg"
+                :                            "cal-msg";
     if (r.ok) {
       showMsgById(msgId, "✔ Zapisano");
+      if (activeTab === "settings") {
+        document.getElementById("new-password").value = "";
+      }
     } else {
       showMsgById(msgId, "⚠ Błąd zapisu");
     }
   } catch(e) {
-    showMsgById(activeTab === "sport" ? "sport-msg"
-              : activeTab === "photos" ? "photos-msg" : "cal-msg", "⚠ Błąd sieci");
+    const msgId = activeTab === "sport"    ? "sport-msg"
+                : activeTab === "photos"   ? "photos-msg"
+                : activeTab === "calendar" ? "cal-msg"
+                : activeTab === "settings" ? "settings-msg"
+                :                           "cal-msg";
+    showMsgById(msgId, "⚠ Błąd sieci");
   }
 }
 

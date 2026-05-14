@@ -1039,6 +1039,10 @@ body.config-body { overflow: auto; height: auto; }
 [data-theme="light"] .dep-minutes               { color: #1a1a1a; }
 [data-theme="light"] .dep-real                  { color: #3a3020; }
 [data-theme="light"] .cal-date-label            { color: #7a6a40; }
+[data-theme="light"] .cal-date-label.today      { color: var(--red);  }
+[data-theme="light"] .cal-date-label.tomorrow   { color: var(--gold); }
+[data-theme="light"] .cal-date-label.soon       { color: var(--blue); }
+[data-theme="light"] .cal-date-label.holiday    { color: var(--red); font-weight: bold; }
 [data-theme="light"] .cal-summary               { color: #1a1a1a; }
 [data-theme="light"] .waste-day-label           { color: #7a6a40; }
 [data-theme="light"] .waste-day-label.today      { color: #c0392b; }
@@ -1064,13 +1068,13 @@ body.config-body { overflow: auto; height: auto; }
 }
 
 .col-right-top {
-  flex: 13;
+  flex: 11;
   min-height: 0;
   height: 100%;
 }
 
 .col-right-bottom {
-  flex: 7;
+  flex: 9;
   min-height: 0;
   overflow-y: auto;
 }

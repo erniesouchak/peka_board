@@ -190,23 +190,25 @@ async def api_set_config(request: Request, _auth=Depends(verify_auth)):
 @app.get("/api/board-settings")
 async def api_get_board_settings(_auth=Depends(verify_auth)):
     """Zwróć edytowalne sekcje board_config.json (bez hasła)."""
-    if not BOARD_CONFIG_PATH.exists():
-        return {"sports": {}, "photos": {}, "calendar": {}, "synology": {}}
-    try:
-        cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
-        return {
-            "sports":   cfg.get("sports",   {}),
-            "photos":   cfg.get("photos",   {}),
-            "calendar": cfg.get("calendar", {}),
-            "synology": cfg.get("synology", {}),
-        }
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+    cfg: dict = {}
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {
+        "sports":   cfg.get("sports",   {}),
+        "photos":   cfg.get("photos",   {}),
+        "calendar": cfg.get("calendar", {}),
+        "synology": cfg.get("synology", {}),
+        "weather":  cfg.get("weather",  {"lat": 52.4064, "lon": 16.9252}),
+        "board":    cfg.get("board",    {"max_bollards": 6, "max_rows": 16}),
+    }
 
 
 @app.post("/api/board-settings")
 async def api_save_board_settings(request: Request, _auth=Depends(verify_auth)):
-    """Zapisz sekcje sports/photos/calendar/synology do board_config.json."""
+    """Zapisz sekcje konfiguracyjne do board_config.json i przeładuj moduły."""
     data = await request.json()
     # Wczytaj istniejący config lub zacznij od pustego słownika
     cfg: dict = {}
@@ -215,16 +217,20 @@ async def api_save_board_settings(request: Request, _auth=Depends(verify_auth)):
             cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
         except Exception:
             pass
-    # Nadpisz tylko przesłane sekcje
-    for section in ("sports", "photos", "calendar", "synology"):
+    # Nadpisz przesłane sekcje
+    for section in ("sports", "photos", "calendar", "synology", "weather", "board"):
         if section in data:
             cfg[section] = data[section]
+    # Hasło — tylko jeśli niepuste
+    if data.get("config_password"):
+        cfg["config_password"] = data["config_password"]
     BOARD_CONFIG_PATH.write_text(
         json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    # Przeładuj moduły
+    # Przeładuj wszystkie moduły
     try:
         photos.load_config()
+        weather.load_config()
         calendar.load_config()
         sports_data.load_config()
     except Exception as e:

@@ -113,11 +113,11 @@ function renderDepartures(data) {
       hdr.innerHTML = `
         <div class="dep-grid">
           <span>Linia</span>
-          <span>Godz.rozk.</span>
+          <span>Rozk.</span>
           <span style="text-align:left;padding-left:8px">Kierunek</span>
           <span style="text-align:left;padding-left:6px">Gdzie jest</span>
           <span>Za</span>
-          <span>Godz.rzecz.</span>
+          <span>Rzecz.</span>
           <span>Opóźn.</span>
           <span>Pojazd</span>
         </div>`;
