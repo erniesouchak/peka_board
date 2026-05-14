@@ -1210,7 +1210,9 @@ body.config-body { overflow: auto; height: auto; }
 
 .sport-game-row.sport-win   { color: var(--green); }
 .sport-game-row.sport-loss  { color: var(--red); }
-.sport-game-row.sport-live  { color: var(--gold); font-weight: bold; }
+.sport-game-row.sport-live  { color: var(--text); font-weight: bold; }
+.sport-live-dot             { color: var(--red); }
+.sport-live-clock           { color: var(--dim); font-weight: normal; font-size: 0.68rem; }
 .sport-game-row.sport-next  { color: var(--blue); }
 
 .sport-score-val {

@@ -313,14 +313,15 @@ class Sports:
                 name      = ev.get("name", "")
 
                 game = {
-                    "status":    status,
-                    "our_score": our_score,
-                    "opp_score": opp_score,
-                    "opp":       opp_name,
-                    "home":      our_home,
-                    "date":      date_str,
-                    "won":       None,
-                    "scorers":   [],
+                    "status":     status,
+                    "our_score":  our_score,
+                    "opp_score":  opp_score,
+                    "opp":        opp_name,
+                    "home":       our_home,
+                    "date":       date_str,
+                    "won":        None,
+                    "scorers":    [],
+                    "game_clock": ev.get("status", {}).get("type", {}).get("shortDetail", ""),
                 }
 
                 # Zbierz strzelców bramek

@@ -460,7 +460,7 @@ function renderSports(data, scores) {
       html += `<div class="sport-league">${esc(s.league)}</div>`;
       html += `
         <div class="sport-row-simple">
-          <span class="sport-team">${esc(s.team)}</span>
+          <span class="sport-team sport-highlight">${esc(s.team)}</span>
           <span class="sport-record">${s.rank}. · ${s.wins}-${s.draws}-${s.losses} · ${s.points} pkt</span>
         </div>`;
       const leagueKey = s.league_key;
@@ -517,7 +517,8 @@ function renderGameRow(sc) {
       const cls  = g.won === true ? "sport-win" : g.won === false ? "sport-loss" : "sport-draw";
       return `<div class="sport-game-row ${cls}">${icon} ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span>${scorersInline}</div>`;
     } else if (g.status === "in") {
-      return `<div class="sport-game-row sport-live">● LIVE ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span>${scorersInline}</div>`;
+      const clock = g.game_clock ? ` <span class="sport-live-clock">${esc(g.game_clock)}</span>` : "";
+      return `<div class="sport-game-row sport-live"><span class="sport-live-dot">●</span> LIVE${clock} ${vs} <span class="sport-score-val">${g.our_score}–${g.opp_score}</span>${scorersInline}</div>`;
     } else {
       const time = d.toLocaleString("pl-PL", {weekday:"short", day:"numeric", month:"numeric", hour:"2-digit", minute:"2-digit"});
       return `<div class="sport-game-row sport-next">→ ${vs} ${time}</div>`;
