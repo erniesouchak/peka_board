@@ -6,13 +6,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 log = logging.getLogger(__name__)
 
 GPIO_PIN       = 17
-NO_MOTION_SECS = 300  # 5 minut
+NO_MOTION_SECS = 60  # 5 minut
 
 def display(on: bool):
-    state = "--on" if on else "--off"
-    subprocess.run([
-        "wlr-randr", "--output", "HDMI-A-1", state
-    ], env={
+    cmd = ["wlopm", "--on" if on else "--off", "HDMI-A-1"]
+    subprocess.run(cmd, env={
         "WAYLAND_DISPLAY": "wayland-0",
         "XDG_RUNTIME_DIR": "/run/user/1000",
     }, capture_output=True)
