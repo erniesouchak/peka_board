@@ -413,6 +413,24 @@
         </div>
       </div>
 
+      <!-- Motyw -->
+      <div class="settings-section">
+        <div class="settings-section-title">Motyw — godziny trybu ciemnego</div>
+        <div class="settings-row">
+          <label>Włącz ciemny od</label>
+          <input type="number" id="theme-dark-from" min="0" max="23" placeholder="21" style="width:70px;flex:none">
+          <span style="font-size:0.85rem;color:var(--dim)">:00</span>
+        </div>
+        <div class="settings-row">
+          <label>Włącz jasny od</label>
+          <input type="number" id="theme-dark-until" min="0" max="23" placeholder="7" style="width:70px;flex:none">
+          <span style="font-size:0.85rem;color:var(--dim)">:00</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--dim)">
+          Zmiana następuje automatycznie przez cron — godziny muszą się zgadzać z wpisami w crontabie
+        </div>
+      </div>
+
       <!-- Bezpieczeństwo -->
       <div class="settings-section">
         <div class="settings-section-title">Bezpieczeństwo</div>
@@ -498,10 +516,13 @@ function applySettings(s) {
   // Ustawienia ogólne
   const wth = s.weather || {};
   const brd = s.board   || {};
-  document.getElementById("weather-lat").value   = wth.lat ?? "52.4064";
-  document.getElementById("weather-lon").value   = wth.lon ?? "16.9252";
+  document.getElementById("weather-lat").value    = wth.lat ?? "52.4064";
+  document.getElementById("weather-lon").value    = wth.lon ?? "16.9252";
   document.getElementById("board-bollards").value = brd.max_bollards ?? "6";
   document.getElementById("board-rows").value     = brd.max_rows     ?? "16";
+  const thm = s.theme || {};
+  document.getElementById("theme-dark-from").value  = thm.dark_from  ?? "21";
+  document.getElementById("theme-dark-until").value = thm.dark_until ?? "7";
   document.getElementById("new-password").value   = "";
 }
 
@@ -552,8 +573,12 @@ function collectSettings() {
     max_rows:     parseInt(document.getElementById("board-rows").value,     10) || 16,
   };
   const config_password = document.getElementById("new-password").value.trim();
+  const theme = {
+    dark_from:  parseInt(document.getElementById("theme-dark-from").value,  10) ?? 21,
+    dark_until: parseInt(document.getElementById("theme-dark-until").value, 10) ?? 7,
+  };
 
-  return { sports, photos, synology, calendar, weather, board, config_password };
+  return { sports, photos, synology, calendar, weather, board, theme, config_password };
 }
 
 async function saveSettings() {

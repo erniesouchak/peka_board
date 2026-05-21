@@ -33,5 +33,9 @@
   "board": {
     "max_bollards": 6,
     "max_rows": 16
+  },
+  "theme": {
+    "dark_from": 21,
+    "dark_until": 7
   }
 }

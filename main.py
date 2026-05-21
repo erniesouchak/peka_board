@@ -39,7 +39,20 @@ app = FastAPI(title="PEKA Board")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-_current_theme: str = "dark"
+def _initial_theme() -> str:
+    dark_from, dark_until = 21, 7
+    if BOARD_CONFIG_PATH.exists():
+        try:
+            cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
+            t = cfg.get("theme", {})
+            dark_from = int(t.get("dark_from", 21))
+            dark_until = int(t.get("dark_until", 7))
+        except Exception:
+            pass
+    h = datetime.now().hour
+    return "dark" if h >= dark_from or h < dark_until else "light"
+
+_current_theme: str = _initial_theme()
 _theme_subscribers: list[asyncio.Queue] = []
 
 _http_security = HTTPBasic()
@@ -144,7 +157,7 @@ async def dashboard(request: Request):
     config = load_config()
     return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
-        "theme":     "dark",
+        "theme":     "light",
     })
 
 
@@ -236,6 +249,7 @@ async def api_get_board_settings(_auth=Depends(verify_auth)):
         "synology": cfg.get("synology", {}),
         "weather":  cfg.get("weather",  {"lat": 52.4064, "lon": 16.9252}),
         "board":    cfg.get("board",    {"max_bollards": 6, "max_rows": 16}),
+        "theme":    cfg.get("theme",    {"dark_from": 21, "dark_until": 7}),
     }
 
 
@@ -251,7 +265,7 @@ async def api_save_board_settings(request: Request, _auth=Depends(verify_auth)):
         except Exception:
             pass
     # Nadpisz przesłane sekcje
-    for section in ("sports", "photos", "calendar", "synology", "weather", "board"):
+    for section in ("sports", "photos", "calendar", "synology", "weather", "board", "theme"):
         if section in data:
             cfg[section] = data[section]
     # Hasło — tylko jeśli niepuste
