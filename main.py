@@ -14,7 +14,7 @@ from typing import Optional
 import secrets
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -38,6 +38,9 @@ app = FastAPI(title="PEKA Board")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+_current_theme: str = "dark"
+_theme_subscribers: list[asyncio.Queue] = []
 
 _http_security = HTTPBasic()
 
@@ -161,6 +164,36 @@ async def dashboard_dark(request: Request):
         "has_config": bool(config),
         "theme":     "dark",
     })
+
+
+@app.get("/set-theme")
+async def set_theme(theme: str = "dark"):
+    global _current_theme
+    if theme not in ("dark", "light"):
+        return JSONResponse({"error": "Nieprawidłowy motyw"}, status_code=400)
+    _current_theme = theme
+    for q in _theme_subscribers:
+        await q.put(theme)
+    log.info("Zmiana motywu na: %s", theme)
+    return {"ok": True, "theme": theme}
+
+
+@app.get("/api/theme-stream")
+async def theme_stream():
+    queue: asyncio.Queue = asyncio.Queue()
+    _theme_subscribers.append(queue)
+
+    async def generator():
+        try:
+            yield f"data: {_current_theme}\n\n"
+            while True:
+                t = await queue.get()
+                yield f"data: {t}\n\n"
+        finally:
+            _theme_subscribers.remove(queue)
+
+    return StreamingResponse(generator(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.get("/config-page", response_class=HTMLResponse)

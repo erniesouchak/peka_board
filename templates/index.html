@@ -120,6 +120,16 @@
 </div>
 {% endif %}
 
+<script>
+(function () {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const es = new EventSource('/api/theme-stream');
+  es.onmessage = function (e) {
+    const t = e.data.trim();
+    if (t && t !== cur) window.location.href = '/' + t;
+  };
+})();
+</script>
 <script src="/static/app.js"></script>
 </body>
 </html>
