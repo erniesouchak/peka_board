@@ -849,7 +849,7 @@ body.config-body { overflow: auto; height: auto; }
 
 .forecast-day {
   display: grid;
-  grid-template-columns: 36px 1fr 24px 56px;
+  grid-template-columns: 110px 1fr 24px 56px;
   align-items: center;
   gap: 4px;
   padding: 2px 4px;
@@ -860,9 +860,7 @@ body.config-body { overflow: auto; height: auto; }
   color: var(--dim);
   font-weight: bold;
 }
-.hourly-label {
-  min-width: 68px;
-}
+.hourly-label {}
 .weather-hourly-sep {
   border-top: 1px solid var(--sep);
   margin: 4px 0;

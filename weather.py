@@ -56,7 +56,7 @@ WMO_CODES = {
     99: ("Burza z gradem",       "thunder",      "thunder"),
 }
 
-DAYS_PL = ["Niedz.", "Pon.", "Wt.", "Śr.", "Czw.", "Pt.", "Sob."]
+DAYS_PL = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"]
 MONTHS_PL = ["sty", "lut", "mar", "kwi", "maj", "cze",
              "lip", "sie", "wrz", "paź", "lis", "gru"]
 
