@@ -114,6 +114,11 @@ class Weather:
                         "weather_code",
                         "is_day",
                     ],
+                    "hourly":             [
+                        "temperature_2m",
+                        "weather_code",
+                        "precipitation_probability",
+                    ],
                     "daily":              [
                         "weather_code",
                         "temperature_2m_max",
@@ -206,10 +211,59 @@ class Weather:
 
         return result
 
+    def get_hourly(self, count: int = 4) -> list[dict]:
+        """Zwróć prognozę godzinową: teraz + kolejne (count-1) godziny."""
+        self.ensure_fresh()
+        if not self._data or "hourly" not in self._data:
+            return []
+
+        h = self._data["hourly"]
+        times   = h.get("time", [])
+        temps   = h.get("temperature_2m", [])
+        codes   = h.get("weather_code", [])
+        probs   = h.get("precipitation_probability", [])
+
+        now_str = datetime.now().strftime("%Y-%m-%dT%H:00")
+        try:
+            start = times.index(now_str)
+        except ValueError:
+            return []
+
+        result = []
+        for offset in range(count):
+            i = start + offset
+            if i >= len(times):
+                break
+            code  = codes[i] if i < len(codes) else 0
+            entry = WMO_CODES.get(code, ("Nieznana", "cloudy", "cloudy"))
+            desc, icon_day, icon_night = entry
+            hour  = int(times[i][11:13])
+            is_day = 6 <= hour < 21
+            icon  = icon_day if is_day else icon_night
+
+            if offset == 0:
+                label = "Teraz"
+            elif offset == 1:
+                label = "Za godz."
+            else:
+                label = f"Za {offset}h"
+
+            result.append({
+                "label":       label,
+                "time":        f"{hour:02d}:00",
+                "temp":        round(temps[i]) if i < len(temps) else None,
+                "description": desc,
+                "icon":        icon,
+                "precip_prob": round(probs[i]) if i < len(probs) else 0,
+            })
+
+        return result
+
     def get_all(self) -> dict:
         """Zwróć aktualne + prognozę."""
         return {
             "current":  self.get_current(),
+            "hourly":   self.get_hourly(),
             "forecast": self.get_forecast(days=3),
             "updated":  datetime.fromtimestamp(self._last_fetch).strftime("%H:%M")
                         if self._last_fetch else "—",

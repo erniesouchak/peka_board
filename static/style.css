@@ -860,6 +860,13 @@ body.config-body { overflow: auto; height: auto; }
   color: var(--dim);
   font-weight: bold;
 }
+.hourly-label {
+  min-width: 68px;
+}
+.weather-hourly-sep {
+  border-top: 1px solid var(--sep);
+  margin: 4px 0;
+}
 
 .forecast-desc {
   color: var(--text);

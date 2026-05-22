@@ -365,6 +365,20 @@ function renderWeather(data) {
       </span>
     </div>
   `).join("");
+
+  // Prognoza godzinowa
+  const hourlyEl = document.getElementById("weather-hourly");
+  const hr = data.hourly || [];
+  if (hourlyEl) {
+    hourlyEl.innerHTML = hr.map(h => `
+      <div class="forecast-day">
+        <span class="forecast-day-name hourly-label">${h.label}</span>
+        <span class="forecast-desc">${h.description}</span>
+        <img src="/static/weather-icons/${h.icon}.svg" class="forecast-icon-svg" alt="${h.description}">
+        <span class="forecast-temps"><span class="t-max">${h.temp}°</span></span>
+      </div>
+    `).join("");
+  }
 }
 
 // Uruchom przy starcie i odświeżaj co 30 minut
