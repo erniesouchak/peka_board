@@ -7,7 +7,7 @@
   "photos": {
     "source":              "synology",
     "photo_interval_min":  5,
-    "local_path":          "/home/ernie/photos",
+    "local_path":          "/path/to/photos",
     "urls":                []
   },
   "weather": {
