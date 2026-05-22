@@ -401,13 +401,15 @@ async def api_board_config():
         try:
             cfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
             board = cfg.get("board", {})
+            photos_cfg = cfg.get("photos", {})
             return {
-                "max_bollards": int(board.get("max_bollards", 6)),
-                "max_rows":     int(board.get("max_rows", 16)),
+                "max_bollards":       int(board.get("max_bollards", 6)),
+                "max_rows":           int(board.get("max_rows", 16)),
+                "photo_interval_min": int(photos_cfg.get("photo_interval_min", 5)),
             }
         except Exception:
             pass
-    return {"max_bollards": 6, "max_rows": 16}
+    return {"max_bollards": 6, "max_rows": 16, "photo_interval_min": 5}
 
 
 @app.get("/api/calendar")

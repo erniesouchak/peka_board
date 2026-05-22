@@ -5,9 +5,10 @@
     "passphrase": "TwojPassphrase"
   },
   "photos": {
-    "source":     "synology",
-    "local_path": "/home/ernie/photos",
-    "urls":       []
+    "source":              "synology",
+    "photo_interval_min":  5,
+    "local_path":          "/home/ernie/photos",
+    "urls":                []
   },
   "weather": {
     "lat": 52.345,

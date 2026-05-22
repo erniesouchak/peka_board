@@ -313,9 +313,14 @@ async function fetchPhoto() {
   }
 }
 
-// Uruchom przy starcie i co 15 minut
+// Uruchom przy starcie i co N minut (z konfiguracji, domyślnie 5)
 fetchPhoto();
-setInterval(fetchPhoto, 15 * 60 * 1000);
+fetch("/api/board-config").then(r => r.json()).then(cfg => {
+  const mins = Math.max(2, Math.min(60, cfg.photo_interval_min || 5));
+  setInterval(fetchPhoto, mins * 60 * 1000);
+}).catch(() => {
+  setInterval(fetchPhoto, 5 * 60 * 1000);
+});
 
 // ── Pogoda ────────────────────────────────────────────────────────────────────
 

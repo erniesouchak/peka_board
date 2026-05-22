@@ -297,6 +297,15 @@
     <div class="settings-form">
 
       <div class="settings-section">
+        <div class="settings-section-title">Interwał zmiany zdjęć</div>
+        <div class="settings-row">
+          <label>Zmiana co</label>
+          <input type="number" id="photo-interval" min="2" max="60" placeholder="5" style="width:70px;flex:none">
+          <span style="font-size:0.85rem;color:var(--dim)">minut (2–60)</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
         <div class="settings-section-title">Źródło zdjęć</div>
         <div class="source-radios">
           <label>
@@ -502,9 +511,10 @@ function applySettings(s) {
   const source = ph.source || "synology";
   const radio = document.querySelector(`input[name="photo-source"][value="${source}"]`);
   if (radio) radio.checked = true;
-  document.getElementById("syn-url").value   = syn.url         || "";
-  document.getElementById("syn-pass").value  = syn.passphrase  || "";
-  document.getElementById("local-path").value = ph.local_path  || "";
+  document.getElementById("syn-url").value      = syn.url         || "";
+  document.getElementById("syn-pass").value     = syn.passphrase  || "";
+  document.getElementById("local-path").value   = ph.local_path   || "";
+  document.getElementById("photo-interval").value = ph.photo_interval_min ?? 5;
   renderUrlList(ph.urls || []);
   onPhotoSourceChange();
 
@@ -544,7 +554,10 @@ function collectSettings() {
 
   // Zdjęcia
   const source = document.querySelector('input[name="photo-source"]:checked')?.value || "synology";
-  const photos = { source };
+  const photos = {
+    source,
+    photo_interval_min: Math.max(2, Math.min(60, parseInt(document.getElementById("photo-interval").value, 10) || 5)),
+  };
   if (source === "local_folder") {
     photos.local_path = document.getElementById("local-path").value.trim();
   } else if (source === "url_list") {
