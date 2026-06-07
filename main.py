@@ -371,8 +371,7 @@ async def api_departures():
         )
 
         try:
-            gtfs_rt.enrich_departures(
-                deps, gtfs_static.stop_code_to_id, symbol, gtfs_static)
+            gtfs_rt.enrich_departures(deps, gtfs_static)
         except Exception as e:
             log.warning("RT enrich błąd: %s", e)
 

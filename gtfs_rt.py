@@ -77,8 +77,6 @@ class GTFSRealtime:
 
         self._trip_vehicles = trip_vehicles
         log.debug("Pojazdów w RT: %d", len(trip_vehicles))
-        n_trips = [k for k in trip_vehicles if "^N" in k]
-        log.warning("RT ^N trips: %d, examples: %s", len(n_trips), n_trips[:3])
 
     def _fetch_trip_updates(self):
         """Pobierz opóźnienia z trip_updates.pb."""
@@ -135,8 +133,6 @@ class GTFSRealtime:
     def enrich_departures(
         self,
         departures: list[dict],
-        stop_code_to_id: dict[str, str],
-        stop_code: str,
         gtfs_static=None,
     ) -> list[dict]:
         """
@@ -177,7 +173,6 @@ class GTFSRealtime:
                 else:
                     dep["delay_seconds"] = None
             else:
-                log.warning("Brak pojazdu RT dla trip_id=%s (stop=%s)", rt_trip_id, stop_code)
                 # Fallback dla overnight: szukaj po numerze linii w vehicle_label
                 if dep.get("overnight"):
                     line = dep.get("line", "")
