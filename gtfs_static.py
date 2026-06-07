@@ -388,6 +388,8 @@ class GTFSStatic:
 
             # Kursy nocne (overnight=True) startowały wczoraj
             is_overnight = st.get("overnight", False)
+            if is_overnight:
+                continue  # linie nocne bez RT — filtrowane do czasu właściwego rozwiązania
             check_date = today - timedelta(days=1) if is_overnight else today
 
             if is_overnight:
