@@ -247,6 +247,17 @@ html, body {
   flex: 1;
 }
 
+.bollard-rt-badge {
+  background: var(--sep);
+  color: var(--dim);
+  font-size: 0.6rem;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
 .bollard-symbol {
   font-family: var(--font-mono);
   font-size: 0.72rem;

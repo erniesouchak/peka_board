@@ -97,10 +97,16 @@ function renderDepartures(data) {
     const tile = document.createElement("div");
     tile.className = "tile-bollard";
 
+    const hasAnyRt = group.departures && group.departures.some(d => d.realtime);
+    const noRtBadge = (group.departures && group.departures.length > 0 && !hasAnyRt)
+      ? '<span class="bollard-rt-badge">brak RT</span>'
+      : '';
+
     tile.innerHTML = `
       <div class="bollard-header">
         <span class="bollard-label">${esc(group.bollard.label)}</span>
         <span class="bollard-symbol">${esc(group.bollard.symbol)}</span>
+        ${noRtBadge}
       </div>`;
 
     if (group.error) {
