@@ -14,7 +14,7 @@ from typing import Optional
 import secrets
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -128,6 +128,22 @@ async def startup():
     except Exception as e:
         log.error("Błąd ładowania konfiguracji: %s", e)
     asyncio.create_task(_gtfs_watcher())
+    asyncio.create_task(_theme_watcher())
+
+
+async def _theme_watcher():
+    try:
+        while True:
+            await asyncio.sleep(60)
+            expected = _initial_theme()
+            global _current_theme
+            if expected != _current_theme:
+                _current_theme = expected
+                for q in _theme_subscribers:
+                    await q.put(expected)
+                log.info("Auto-zmiana motywu → %s", expected)
+    except asyncio.CancelledError:
+        log.debug("Theme watcher zatrzymany.")
 
 
 async def _gtfs_watcher():
@@ -157,26 +173,26 @@ async def dashboard(request: Request):
     config = load_config()
     return templates.TemplateResponse(request, "index.html", {
         "has_config": bool(config),
-        "theme":     "light",
+        "theme":     _current_theme,
     })
 
 
-@app.get("/light", response_class=HTMLResponse)
-async def dashboard_light(request: Request):
-    config = load_config()
-    return templates.TemplateResponse(request, "index.html", {
-        "has_config": bool(config),
-        "theme":     "light",
-    })
+@app.get("/light")
+async def dashboard_light():
+    global _current_theme
+    _current_theme = "light"
+    for q in _theme_subscribers:
+        await q.put("light")
+    return RedirectResponse("/", status_code=302)
 
 
-@app.get("/dark", response_class=HTMLResponse)
-async def dashboard_dark(request: Request):
-    config = load_config()
-    return templates.TemplateResponse(request, "index.html", {
-        "has_config": bool(config),
-        "theme":     "dark",
-    })
+@app.get("/dark")
+async def dashboard_dark():
+    global _current_theme
+    _current_theme = "dark"
+    for q in _theme_subscribers:
+        await q.put("dark")
+    return RedirectResponse("/", status_code=302)
 
 
 @app.get("/set-theme")
