@@ -228,6 +228,16 @@
 
     </div>
 
+    <div class="cfg-limits">
+      <div class="cfg-limits-row">
+        <label>Maks. słupków</label>
+        <input type="number" id="board-bollards" min="1" max="12" placeholder="6" style="width:60px">
+        <label style="margin-left:16px">Maks. wierszy</label>
+        <input type="number" id="board-rows" min="4" max="40" placeholder="16" style="width:60px">
+        <span style="font-size:0.75rem;color:var(--dim);margin-left:10px">Łączna liczba wierszy odjazdów (suma wszystkich słupków)</span>
+      </div>
+    </div>
+
     <div class="cfg-footer">
       <button onclick="saveConfig()" class="btn-save">✔ Zapisz przystanki i wróć do tablicy</button>
       <span id="cfg-msg" class="cfg-msg"></span>
@@ -406,22 +416,6 @@
         </div>
       </div>
 
-      <!-- Tablica odjazdów -->
-      <div class="settings-section">
-        <div class="settings-section-title">Tablica odjazdów — limity</div>
-        <div class="settings-row">
-          <label>Maks. przystanków</label>
-          <input type="text" id="board-bollards" placeholder="6">
-        </div>
-        <div class="settings-row">
-          <label>Maks. wierszy</label>
-          <input type="text" id="board-rows" placeholder="16">
-        </div>
-        <div style="font-size:0.75rem;color:var(--dim)">
-          Łączna liczba wierszy odjazdów na tablicy (suma wszystkich przystanków)
-        </div>
-      </div>
-
       <!-- Motyw -->
       <div class="settings-section">
         <div class="settings-section-title">Motyw — godziny trybu ciemnego</div>
@@ -528,8 +522,10 @@ function applySettings(s) {
   const brd = s.board   || {};
   document.getElementById("weather-lat").value    = wth.lat ?? "52.4064";
   document.getElementById("weather-lon").value    = wth.lon ?? "16.9252";
-  document.getElementById("board-bollards").value = brd.max_bollards ?? "6";
-  document.getElementById("board-rows").value     = brd.max_rows     ?? "16";
+  MAX_BOLLARDS = brd.max_bollards ?? 6;
+  MAX_ROWS     = brd.max_rows     ?? 16;
+  document.getElementById("board-bollards").value = MAX_BOLLARDS;
+  document.getElementById("board-rows").value     = MAX_ROWS;
   const thm = s.theme || {};
   document.getElementById("theme-dark-from").value  = thm.dark_from  ?? "21";
   document.getElementById("theme-dark-until").value = thm.dark_until ?? "7";
@@ -760,8 +756,19 @@ let MAX_BOLLARDS = 6;
 let MAX_ROWS     = 16;
 
 fetch("/api/board-config").then(r => r.json()).then(cfg => {
-  MAX_BOLLARDS = cfg.max_bollards;
-  MAX_ROWS     = cfg.max_rows;
+  MAX_BOLLARDS = cfg.max_bollards ?? 6;
+  MAX_ROWS     = cfg.max_rows     ?? 16;
+  document.getElementById("board-bollards").value = MAX_BOLLARDS;
+  document.getElementById("board-rows").value     = MAX_ROWS;
+  renderSelected();
+});
+
+document.getElementById("board-bollards").addEventListener("input", e => {
+  MAX_BOLLARDS = parseInt(e.target.value, 10) || 6;
+  renderSelected();
+});
+document.getElementById("board-rows").addEventListener("input", e => {
+  MAX_ROWS = parseInt(e.target.value, 10) || 16;
   renderSelected();
 });
 
@@ -865,7 +872,7 @@ function addBollard() {
   }
   const totalRows = selectedBollards.reduce((s, b) => s + (b.rows || 2), 0);
   const newRows = Math.min(2, MAX_ROWS - totalRows);
-  if (newRows < 1) { showMsg("Osiągnięto limit 16 wierszy."); return; }
+  if (newRows < 1) { showMsg(`Osiągnięto limit ${MAX_ROWS} wierszy.`); return; }
   selectedBollards.push({ ...selectedBollard, rows: newRows });
   renderSelected();
 }
@@ -901,7 +908,7 @@ function changeRows(idx, delta) {
   const newVal = cur + delta;
   if (newVal < 1 || newVal > 5) return;
   if (delta > 0 && totalRows >= MAX_ROWS) {
-    showMsg("Osiągnięto limit 16 wierszy."); return;
+    showMsg(`Osiągnięto limit ${MAX_ROWS} wierszy.`); return;
   }
   selectedBollards[idx].rows = newVal;
   renderSelected();
@@ -952,8 +959,16 @@ async function saveConfig() {
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(selectedBollards),
   });
-  if (r.ok) window.location.href = "/";
-  else showMsg("Błąd zapisu.");
+  if (!r.ok) { showMsg("Błąd zapisu."); return; }
+  await fetch("/api/board-settings", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ board: {
+      max_bollards: parseInt(document.getElementById("board-bollards").value, 10) || 6,
+      max_rows:     parseInt(document.getElementById("board-rows").value, 10)     || 16,
+    }}),
+  });
+  window.location.href = "/";
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

@@ -623,6 +623,16 @@ body.config-body { overflow: auto; height: auto; }
 .btn-remove:hover { background: #3a1818; }
 .btn-save:hover   { background: #2a5a2a; }
 
+.cfg-limits {
+  background: var(--bg2); border: 1px solid var(--sep);
+  border-radius: 10px; padding: 10px 20px; margin-top: 8px;
+}
+.cfg-limits-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 0.82rem; color: var(--dim);
+}
+.cfg-limits-row label { color: var(--fg); }
+
 .cfg-footer {
   background: var(--bg2); border: 1px solid var(--sep);
   border-radius: 10px; padding: 12px 20px;
