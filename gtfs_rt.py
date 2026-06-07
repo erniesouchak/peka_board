@@ -77,9 +77,8 @@ class GTFSRealtime:
 
         self._trip_vehicles = trip_vehicles
         log.debug("Pojazdów w RT: %d", len(trip_vehicles))
-        if trip_vehicles:
-            sample = list(trip_vehicles.keys())[:5]
-            log.warning("Sample RT trip_ids: %s", sample)
+        n_trips = [k for k in trip_vehicles if "^N" in k]
+        log.warning("RT ^N trips: %d, examples: %s", len(n_trips), n_trips[:3])
 
     def _fetch_trip_updates(self):
         """Pobierz opóźnienia z trip_updates.pb."""
