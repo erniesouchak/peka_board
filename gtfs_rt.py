@@ -31,8 +31,8 @@ class GTFSRealtime:
         # np. "4_2281694^+" → ("610/2", "6057")
         self._trip_vehicles: dict[str, tuple[str, str]] = {}
 
-        # trip_id → delay_seconds
-        self._trip_delays: dict[str, int] = {}
+        # trip_id → [(stop_sequence, delay_seconds), ...] posortowane rosnąco
+        self._trip_delays: dict[str, list[tuple[int, int]]] = {}
 
         self._last_fetch: float = 0.0
         self._fetch_error: Optional[str] = None
@@ -92,7 +92,8 @@ class GTFSRealtime:
                 if not trip_id:
                     continue
 
-                # Weź opóźnienie z pierwszego stop_time_update
+                # Zbierz opóźnienia dla każdego stop_time_update osobno
+                entries: list[tuple[int, int]] = []
                 for stu in tu.stop_time_update:
                     delay = None
                     if stu.HasField("departure") and stu.departure.HasField("delay"):
@@ -100,14 +101,32 @@ class GTFSRealtime:
                     elif stu.HasField("arrival") and stu.arrival.HasField("delay"):
                         delay = stu.arrival.delay
                     if delay is not None:
-                        delays[trip_id] = delay
-                        break
+                        entries.append((stu.stop_sequence, delay))
+                if entries:
+                    delays[trip_id] = sorted(entries)
 
             self._trip_delays = delays
             log.debug("Opóźnień w RT: %d", len(delays))
         except Exception as e:
             log.debug("trip_updates niedostępne: %s", e)
             self._trip_delays = {}
+
+    def _get_delay_for_stop(self, trip_id: str, stop_seq: int) -> Optional[int]:
+        """Zwróć opóźnienie dla konkretnego stop_seq zgodnie z propagacją GTFS-RT.
+
+        Bierze ostatni wpis o stop_sequence <= stop_seq (opóźnienie propaguje się
+        do przodu aż do kolejnego wpisu, który je nadpisuje).
+        """
+        entries = self._trip_delays.get(trip_id)
+        if not entries:
+            return None
+        result = None
+        for seq, delay in entries:
+            if seq <= stop_seq:
+                result = delay
+            else:
+                break
+        return result
 
     # ── Wzbogacanie odjazdów ──────────────────────────────────────────────────
 
@@ -150,10 +169,9 @@ class GTFSRealtime:
                 else:
                     dep["current_stop"] = ""
 
-                # Opóźnienie tylko gdy pojazd dotarł do naszego przystanku
-                delay = self._trip_delays.get(rt_trip_id)
-                if delay is not None and cur_seq >= stop_seq and cur_seq > 0:
-                    dep["delay_seconds"] = delay
+                # Opóźnienie tylko gdy pojazd jeszcze nie minął naszego przystanku
+                if cur_seq > 0 and cur_seq <= stop_seq:
+                    dep["delay_seconds"] = self._get_delay_for_stop(rt_trip_id, stop_seq)
                 else:
                     dep["delay_seconds"] = None
             else:
