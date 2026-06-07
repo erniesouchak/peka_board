@@ -175,7 +175,7 @@ class GTFSRealtime:
                 else:
                     dep["delay_seconds"] = None
             else:
-                log.debug("Brak pojazdu RT dla trip_id=%s (stop=%s)", rt_trip_id, stop_code)
+                log.warning("Brak pojazdu RT dla trip_id=%s (stop=%s)", rt_trip_id, stop_code)
                 # Fallback dla overnight: szukaj po numerze linii w vehicle_label
                 if dep.get("overnight"):
                     line = dep.get("line", "")
