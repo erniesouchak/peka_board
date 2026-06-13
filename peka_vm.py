@@ -140,7 +140,7 @@ class PekaVM:
                     dep["vehicle_label"]   = ""
                     dep["realtime"]        = True
                     dep["realtime_approx"] = True
-                    dep["current_stop"]    = ""
+                    dep["current_stop"]    = "brak trasy"
                     dep["delay_seconds"]   = None
                     # vehicle_info z VM jako wstępne; nadpisane przez gtfs_static jeśli dostępne
                     if not dep.get("vehicle_info"):

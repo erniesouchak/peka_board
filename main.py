@@ -399,6 +399,8 @@ async def api_departures():
             log.warning("VM enrich błąd: %s", e)
 
         for dep in deps:
+            if not dep.get("realtime"):
+                dep["current_stop"] = "brak danych"
             vid = dep.get("vehicle_id", "")
             static_info = gtfs_static.get_vehicle_info(vid) if vid else {}
             dep["vehicle_info"] = static_info if static_info else dep.get("vehicle_info", {})
