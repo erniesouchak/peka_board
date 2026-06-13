@@ -21,6 +21,7 @@ from fastapi.templating import Jinja2Templates
 
 from gtfs_static import GTFSStatic
 from gtfs_rt import GTFSRealtime
+from peka_vm import PekaVM
 from waste_schedule import WasteSchedule
 from photos import PhotoManager
 from weather import Weather
@@ -59,6 +60,7 @@ _http_security = HTTPBasic()
 
 gtfs_static    = GTFSStatic()
 gtfs_rt        = GTFSRealtime()
+peka_vm        = PekaVM()
 waste_schedule = WasteSchedule()
 photos         = PhotoManager()
 weather        = Weather()
@@ -391,9 +393,15 @@ async def api_departures():
         except Exception as e:
             log.warning("RT enrich błąd: %s", e)
 
+        try:
+            peka_vm.enrich_missing(deps, symbol)
+        except Exception as e:
+            log.warning("VM enrich błąd: %s", e)
+
         for dep in deps:
             vid = dep.get("vehicle_id", "")
-            dep["vehicle_info"] = gtfs_static.get_vehicle_info(vid) if vid else {}
+            static_info = gtfs_static.get_vehicle_info(vid) if vid else {}
+            dep["vehicle_info"] = static_info if static_info else dep.get("vehicle_info", {})
             dep["minutes"] = _calc_minutes(
                 dep["scheduled_departure"],
                 dep.get("delay_seconds"),
@@ -561,6 +569,8 @@ async def api_status():
         "gtfs_loaded":      gtfs_static._loaded,
         "rt_last_update":   gtfs_rt.last_update,
         "rt_error":         gtfs_rt.error,
+        "vm_last_update":   peka_vm.last_update,
+        "vm_error":         peka_vm.error,
         "time":             datetime.now().strftime("%H:%M:%S"),
     }
 
