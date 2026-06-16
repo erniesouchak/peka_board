@@ -119,7 +119,7 @@ def save_config(data: list[dict]):
 # ── Tablice ─────────────────────────────────────────────────────────────────────
 
 def _default_boards() -> dict:
-    return {"active": 0, "row_height": 90, "boards": []}
+    return {"active": 0, "boards": []}
 
 
 def load_boards() -> dict:
@@ -128,7 +128,6 @@ def load_boards() -> dict:
             data = json.loads(BOARDS_PATH.read_text(encoding="utf-8"))
             if isinstance(data, dict) and isinstance(data.get("boards"), list):
                 data.setdefault("active", 0)
-                data.setdefault("row_height", 90)
                 return data
         except Exception as e:
             log.warning("Błąd wczytywania boards.json: %s", e)
@@ -301,9 +300,8 @@ async def api_save_boards(request: Request, _auth=Depends(verify_auth)):
     active = int(data.get("active", 0))
     active = max(0, min(active, len(boards) - 1)) if boards else 0
     cfg = {
-        "active":     active,
-        "row_height": int(data.get("row_height", 90)),
-        "boards":     boards,
+        "active": active,
+        "boards": boards,
     }
     save_boards(cfg)
     await _broadcast_boards({"type": "reload", "active": active})

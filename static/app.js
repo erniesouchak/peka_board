@@ -487,7 +487,7 @@ async function loadBoards() {
     const r = await fetch("/api/boards");
     boardsData = await r.json();
   } catch(e) {
-    boardsData = { active: 0, row_height: 90, boards: [] };
+    boardsData = { active: 0, boards: [] };
   }
 }
 
@@ -509,7 +509,7 @@ function renderActiveBoard() {
   if (activeIndex < 0 || activeIndex >= boards.length) activeIndex = 0;
 
   const board = boards[activeIndex];
-  root.style.setProperty("--row-h", ((boardsData.row_height || 90)) + "px");
+  // Wysokość wierszy = auto-fit przez CSS (grid-template-rows: repeat(16, 1fr)).
 
   for (const w of (board.widgets || [])) {
     const mod = MODULES[w.type];

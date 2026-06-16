@@ -167,11 +167,6 @@
   color: var(--text); font-size: 0.88rem; padding: 6px 9px; outline: none; min-width: 160px;
 }
 .board-name-input:focus { border-color: var(--gold); }
-.rowh-label { font-size: 0.8rem; color: var(--dim); display: flex; align-items: center; gap: 6px; }
-.rowh-label input {
-  background: var(--bg); border: 1px solid var(--sep); border-radius: 5px;
-  color: var(--text); padding: 5px 7px; outline: none;
-}
 
 .boards-main { display: flex; gap: 14px; align-items: flex-start; }
 .boards-palette {
@@ -293,9 +288,6 @@
       <div class="board-tabs" id="board-tabs"></div>
       <button class="btn-dyn-add" onclick="addBoard()">➕ Nowa tablica</button>
       <input type="text" id="board-name" class="board-name-input" placeholder="Nazwa tablicy" oninput="onBoardNameInput()">
-      <label class="rowh-label">Wys. wiersza
-        <input type="number" id="board-rowh" min="40" max="160" value="90" style="width:64px" oninput="onRowHeightInput()">
-      </label>
       <button class="btn-remove" onclick="removeBoard()">🗑 Usuń tablicę</button>
     </div>
     <div class="boards-main">
@@ -649,19 +641,18 @@ let boardsState  = null;
 let curBoard     = 0;
 let boardsLoaded = false;
 let widgetSeq    = 1;
+let editorCellH  = 38;  // bieżąca wysokość komórki płótna (px) — liczona pod proporcję 16:9
 
 async function loadBoardsEditor() {
   try {
     const r = await fetch("/api/boards");
     boardsState = await r.json();
   } catch(e) {
-    boardsState = { active: 0, row_height: 90, boards: [] };
+    boardsState = { active: 0, boards: [] };
   }
   if (!Array.isArray(boardsState.boards)) boardsState.boards = [];
-  if (!boardsState.row_height) boardsState.row_height = 90;
   curBoard = Math.min(boardsState.active || 0, Math.max(0, boardsState.boards.length - 1));
   boardsLoaded = true;
-  document.getElementById("board-rowh").value = boardsState.row_height;
   renderPalette();
   renderBoardTabs();
   renderCanvas();
@@ -708,10 +699,6 @@ function onBoardNameInput() {
   renderBoardTabs();
 }
 
-function onRowHeightInput() {
-  boardsState.row_height = Math.max(40, Math.min(160, parseInt(document.getElementById("board-rowh").value, 10) || 90));
-}
-
 function curWidgets() {
   return boardsState.boards[curBoard] ? boardsState.boards[curBoard].widgets : null;
 }
@@ -749,11 +736,21 @@ function applyWidgetStyle(el, w) {
   el.style.gridRow    = `${(w.y || 0) + 1} / span ${w.h}`;
 }
 
+// Płótno trzyma proporcje ekranu docelowego 16:9, by było wiernym proporcjonalnym
+// podglądem: wysokość = szerokość * 9/16, podzielona na GRID_ROWS wierszy.
+function sizeCanvasPreview() {
+  const canvas = document.getElementById("boards-canvas");
+  if (!canvas) return;
+  const W = canvas.clientWidth;
+  if (!W) { requestAnimationFrame(sizeCanvasPreview); return; }
+  editorCellH = Math.max(18, Math.round((W * 9 / 16) / GRID_ROWS));
+  canvas.style.setProperty("--cell-h", editorCellH + "px");
+  canvas.style.gridTemplateRows = `repeat(${GRID_ROWS}, ${editorCellH}px)`;
+}
+
 function renderCanvas() {
   const canvas = document.getElementById("boards-canvas");
-  const cellH = 38;
-  canvas.style.setProperty("--cell-h", cellH + "px");
-  canvas.style.gridTemplateRows = `repeat(${GRID_ROWS}, ${cellH}px)`;
+  sizeCanvasPreview();
   canvas.innerHTML = "";
 
   const ws = curWidgets();
@@ -794,7 +791,7 @@ function attachDrag(el, w) {
     const canvas = document.getElementById("boards-canvas");
     const rect = canvas.getBoundingClientRect();
     const cellW = rect.width / GRID_COLS;
-    const cellH = 38 + 4; // wysokość komórki + gap
+    const cellH = editorCellH + 4; // wysokość komórki + gap (4px z CSS)
     const startX = e.clientX, startY = e.clientY;
     const ox = w.x || 0, oy = w.y || 0, ow = w.w, oh = w.h;
     el.setPointerCapture(e.pointerId);
@@ -824,7 +821,6 @@ function attachDrag(el, w) {
 
 async function saveBoards() {
   if (boardsState.boards.length) onBoardNameInput();
-  onRowHeightInput();
   boardsState.active = Math.min(curBoard, Math.max(0, boardsState.boards.length - 1));
   try {
     const r = await fetch("/api/boards", {
@@ -1458,6 +1454,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Zakładka "Tablice" jest aktywna domyślnie — wczytaj edytor
   loadBoardsEditor();
+
+  // Przy zmianie rozmiaru okna przelicz proporcje płótna (podgląd 16:9)
+  window.addEventListener("resize", () => {
+    if (boardsLoaded && document.getElementById("panel-boards").classList.contains("active")) {
+      sizeCanvasPreview();
+    }
+  });
 });
 </script>
 </body>
