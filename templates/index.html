@@ -9,101 +9,17 @@
 </head>
 <body>
 
-<div class="dashboard">
+<!-- ── SZKIELET TABLICY — wypełniany dynamicznie przez app.js ──────────────────── -->
+<div id="board-root" class="board-root"></div>
 
-  <!-- ── KOLUMNA LEWA ──────────────────────────────────────────── -->
-  <div class="col-left">
-
-    <!-- Zegar -->
-    <div class="tile tile-clock">
-      <div class="clock-time" id="clock-time">--:--:--</div>
-      <div class="clock-date" id="clock-date">-----------</div>
-      <div class="clock-status" id="clock-status"></div>
-    </div>
-
-    <!-- Kalendarz -->
-    <div class="tile tile-calendar">
-      <div class="tile-header">
-        <i class="fa-solid fa-calendar-days"></i> Kalendarz
-      </div>
-      <div class="calendar-body" id="calendar-body">
-        <div class="cal-placeholder">Ładowanie…</div>
-      </div>
-    </div>
-
-    <!-- Wywóz odpadów -->
-    <div class="tile tile-waste">
-      <div class="tile-header">
-        <i class="fa-solid fa-trash"></i> Wywóz odpadów
-      </div>
-      <div class="waste-body" id="waste-body">
-        <div class="cal-placeholder">Ładowanie…</div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── KOLUMNA ŚRODKOWA ──────────────────────────────────────── -->
-  <div class="col-mid">
-
-    <!-- Pogoda — aktualna po lewej, prognoza po prawej -->
-    <div class="tile tile-weather">
-      <div class="tile-header">
-        <i class="fa-solid fa-cloud-sun"></i> Pogoda
-      </div>
-      <div class="weather-tile-body">
-        <div class="weather-split">
-          <div class="weather-left">
-            <div class="weather-main">
-              <img id="w-icon" src="/static/weather-icons/day.svg" class="weather-icon-svg" alt="Pogoda">
-              <span class="weather-temp" id="w-temp">--°</span>
-            </div>
-            <div class="weather-details" id="w-details"></div>
-          </div>
-          <div class="weather-right">
-            <div id="weather-hourly"></div>
-            <div class="weather-hourly-sep"></div>
-            <div id="weather-forecast"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Zdjęcie -->
-    <div class="tile tile-photo">
-      <div class="photo-body" id="photo-body">
-        <div class="cal-placeholder">
-          <i class="fa-solid fa-image" style="font-size:2rem;opacity:0.3"></i>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── KOLUMNA PRAWA – PEKA ──────────────────────────────────── -->
-  <div class="col-right">
-    <div class="col-right-top" id="departures-container"></div>
-    <div class="tile col-right-bottom" id="sports-widget">
-      <div class="tile-header">
-        <i class="fa-solid fa-trophy"></i> Sport
-      </div>
-      <div class="sports-body" id="sports-body">
-        <div class="cal-placeholder">Ładowanie…</div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ── PASEK DOLNY ──────────────────────────────────────────────── -->
+<!-- ── PASEK DOLNY ──────────────────────────────────────────────────────────────── -->
 <div class="statusbar">
   <span id="sb-gtfs">GTFS: ładowanie…</span>
   <span id="sb-rt">RT: —</span>
   <span class="sb-ztm">Dane <a href="https://www.ztm.poznan.pl" target="_blank">www.ztm.poznan.pl</a></span>
-  <span id="sb-refresh">Odświeżanie…</span>
+  <span id="sb-board" class="sb-board"></span>
   <span class="sb-attribution">Weather icons © <a href="https://www.amcharts.com" target="_blank">amCharts</a></span>
   <span class="sb-right">
-    <button onclick="fetchDepartures()" class="btn-refresh">⟳ Rozkład</button>
     <button onclick="location.reload()" class="btn-refresh">⟳ Odśwież</button>
     <a href="/config-page" class="btn-config">⚙ Konfiguracja</a>
     {% if theme == "dark" %}
@@ -114,17 +30,18 @@
   </span>
 </div>
 
-{% if not has_config %}
+{% if not has_boards %}
 <div class="overlay-setup">
   <div class="setup-box">
     <h2>Witaj w PEKA Board</h2>
-    <p>Skonfiguruj przystanki aby zobaczyć tablicę odjazdów.</p>
-    <a href="/config-page" class="btn-big">⚙ Konfiguruj przystanki</a>
+    <p>Nie masz jeszcze żadnej tablicy. Utwórz tablicę i wypełnij ją modułami.</p>
+    <a href="/config-page" class="btn-big">⚙ Skonfiguruj tablice</a>
   </div>
 </div>
 {% endif %}
 
 <script>
+// Strumień motywu (jak dotychczas) — przeładowanie strony przy zmianie
 (function () {
   const cur = document.documentElement.getAttribute('data-theme');
   const es = new EventSource('/api/theme-stream');

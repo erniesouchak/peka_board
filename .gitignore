@@ -1,7 +1,10 @@
 board_config.json
+boards.json
+config.json
 waste_cache.json
 gtfs_cache*.zip
 synology_session.json
 calendar_cache.json
 .venv/
 .claude/
+__pycache__/

@@ -33,7 +33,9 @@ log = logging.getLogger(__name__)
 
 CONFIG_FILE       = Path("config.json")
 BOARD_CONFIG_PATH = Path("board_config.json")
+BOARDS_PATH       = Path("boards.json")
 MAX_DEPARTURES_PER_STOP = 20
+MAX_BOARDS        = 3
 
 app = FastAPI(title="PEKA Board")
 
@@ -55,6 +57,9 @@ def _initial_theme() -> str:
 
 _current_theme: str = _initial_theme()
 _theme_subscribers: list[asyncio.Queue] = []
+
+# Tablice (a'la HA dashboard) — układ + aktywna tablica
+_board_subscribers: list[asyncio.Queue] = []
 
 _http_security = HTTPBasic()
 
@@ -109,6 +114,35 @@ def load_config() -> list[dict]:
 
 def save_config(data: list[dict]):
     CONFIG_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# ── Tablice ─────────────────────────────────────────────────────────────────────
+
+def _default_boards() -> dict:
+    return {"active": 0, "row_height": 90, "boards": []}
+
+
+def load_boards() -> dict:
+    if BOARDS_PATH.exists():
+        try:
+            data = json.loads(BOARDS_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and isinstance(data.get("boards"), list):
+                data.setdefault("active", 0)
+                data.setdefault("row_height", 90)
+                return data
+        except Exception as e:
+            log.warning("Błąd wczytywania boards.json: %s", e)
+    return _default_boards()
+
+
+def save_boards(data: dict):
+    BOARDS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+async def _broadcast_boards(event: dict):
+    """Wyślij event do wszystkich subskrybentów strumienia tablic (SSE)."""
+    for q in _board_subscribers:
+        await q.put(event)
 
 
 @app.on_event("startup")
@@ -172,10 +206,10 @@ async def _gtfs_watcher():
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    config = load_config()
+    boards = load_boards()
     return templates.TemplateResponse(request, "index.html", {
-        "has_config": bool(config),
-        "theme":     _current_theme,
+        "has_boards": bool(boards.get("boards")),
+        "theme":      _current_theme,
     })
 
 
@@ -247,6 +281,83 @@ async def api_set_config(request: Request, _auth=Depends(verify_auth)):
         return JSONResponse({"error": "Oczekiwano listy bollardów"}, status_code=400)
     save_config(data)
     return {"ok": True, "count": len(data)}
+
+
+# ── Tablice (dashboard a'la HA) ────────────────────────────────────────────────
+
+@app.get("/api/boards")
+async def api_get_boards():
+    """Pełna konfiguracja tablic (edytor + viewer)."""
+    return load_boards()
+
+
+@app.post("/api/boards")
+async def api_save_boards(request: Request, _auth=Depends(verify_auth)):
+    """Zapisz układ tablic i powiadom kioski przez SSE (reload)."""
+    data = await request.json()
+    if not isinstance(data, dict) or not isinstance(data.get("boards"), list):
+        return JSONResponse({"error": "Oczekiwano obiektu z listą 'boards'"}, status_code=400)
+    boards = data["boards"][:MAX_BOARDS]
+    active = int(data.get("active", 0))
+    active = max(0, min(active, len(boards) - 1)) if boards else 0
+    cfg = {
+        "active":     active,
+        "row_height": int(data.get("row_height", 90)),
+        "boards":     boards,
+    }
+    save_boards(cfg)
+    await _broadcast_boards({"type": "reload", "active": active})
+    return {"ok": True, "count": len(boards), "active": active}
+
+
+@app.get("/api/active-board")
+async def api_get_active_board():
+    return {"active": load_boards().get("active", 0)}
+
+
+@app.post("/api/active-board")
+async def api_set_active_board(request: Request):
+    """Ustaw aktywną tablicę. Body: {"index": N} lub {"delta": +1/-1}.
+
+    Bez auth — żeby keypad / timer / zdalne wywołania były proste w sieci lokalnej.
+    """
+    data = await request.json()
+    cfg = load_boards()
+    n = len(cfg.get("boards", []))
+    if n == 0:
+        return JSONResponse({"error": "Brak skonfigurowanych tablic"}, status_code=409)
+    cur = int(cfg.get("active", 0))
+    if "index" in data:
+        new = int(data["index"])
+    elif "delta" in data:
+        new = cur + int(data["delta"])
+    else:
+        return JSONResponse({"error": "Podaj 'index' lub 'delta'"}, status_code=400)
+    new = new % n  # zawijanie (next/prev działa w pętli)
+    cfg["active"] = new
+    save_boards(cfg)
+    await _broadcast_boards({"type": "active", "active": new})
+    log.info("Aktywna tablica → %d", new)
+    return {"ok": True, "active": new}
+
+
+@app.get("/api/board-stream")
+async def board_stream():
+    """SSE — wypycha zmiany aktywnej tablicy oraz zapisy układu (kalka theme_stream)."""
+    queue: asyncio.Queue = asyncio.Queue()
+    _board_subscribers.append(queue)
+
+    async def generator():
+        try:
+            yield f"data: {json.dumps({'type': 'active', 'active': load_boards().get('active', 0)})}\n\n"
+            while True:
+                event = await queue.get()
+                yield f"data: {json.dumps(event)}\n\n"
+        finally:
+            _board_subscribers.remove(queue)
+
+    return StreamingResponse(generator(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ── Ustawienia ogólne (sport / zdjęcia / kalendarz) ────────────────────────────
@@ -355,69 +466,54 @@ async def get_bollards(stop_name: str = ""):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@app.get("/api/departures")
-async def api_departures():
-    config = load_config()
-    if not config:
-        return []
+def build_stop_departures(symbol: str, rows: int) -> list[dict]:
+    """Pobierz i wzbogać odjazdy dla jednego słupka (encja 'transit')."""
+    rows_per_bollard = max(1, min(5, int(rows)))
+    deps = gtfs_static.get_departures_for_stop(symbol, limit=MAX_DEPARTURES_PER_STOP)
 
-    max_rows = 16
-    if BOARD_CONFIG_PATH.exists():
-        try:
-            bcfg = json.loads(BOARD_CONFIG_PATH.read_text(encoding="utf-8"))
-            max_rows = int(bcfg.get("board", {}).get("max_rows", 16))
-        except Exception:
-            pass
+    try:
+        gtfs_rt.enrich_departures(deps, gtfs_static)
+    except Exception as e:
+        log.warning("RT enrich błąd: %s", e)
 
-    total_rows = sum(max(1, min(5, int(b.get("rows", 2)))) for b in config)
-    extra_rows = max(0, max_rows - total_rows)
-    extra_per_bollard = extra_rows // len(config) if config else 0
-    extra_remainder = extra_rows % len(config) if config else 0
+    try:
+        peka_vm.enrich_missing(deps, symbol)
+    except Exception as e:
+        log.warning("VM enrich błąd: %s", e)
 
+    for dep in deps:
+        if not dep.get("realtime"):
+            dep["current_stop"] = "brak danych"
+        vid = dep.get("vehicle_id", "")
+        static_info = gtfs_static.get_vehicle_info(vid) if vid else {}
+        dep["vehicle_info"] = static_info if static_info else dep.get("vehicle_info", {})
+        dep["minutes"] = _calc_minutes(
+            dep["scheduled_departure"],
+            dep.get("delay_seconds"),
+            dep.get("scheduled_departure_str"),
+        )
+
+    return deps[:rows_per_bollard]
+
+
+@app.get("/api/departures/{symbol}")
+async def api_departures_stop(symbol: str, rows: int = 3):
+    """Odjazdy dla pojedynczego słupka — encja 'transit' na tablicy."""
+    if not symbol:
+        return JSONResponse({"error": "Brak symbolu słupka"}, status_code=400)
     try:
         gtfs_static.ensure_loaded()
     except Exception as e:
         log.error("GTFS nie załadowany: %s", e)
         return JSONResponse({"error": str(e)}, status_code=503)
-
-    result = []
-    for i, bollard in enumerate(config):
-        symbol           = bollard.get("symbol", "")
-        rows_per_bollard = max(1, min(5, int(bollard.get("rows", 2))))
-        deps = gtfs_static.get_departures_for_stop(
-            symbol, limit=MAX_DEPARTURES_PER_STOP
-        )
-
-        try:
-            gtfs_rt.enrich_departures(deps, gtfs_static)
-        except Exception as e:
-            log.warning("RT enrich błąd: %s", e)
-
-        try:
-            peka_vm.enrich_missing(deps, symbol)
-        except Exception as e:
-            log.warning("VM enrich błąd: %s", e)
-
-        for dep in deps:
-            if not dep.get("realtime"):
-                dep["current_stop"] = "brak danych"
-            vid = dep.get("vehicle_id", "")
-            static_info = gtfs_static.get_vehicle_info(vid) if vid else {}
-            dep["vehicle_info"] = static_info if static_info else dep.get("vehicle_info", {})
-            dep["minutes"] = _calc_minutes(
-                dep["scheduled_departure"],
-                dep.get("delay_seconds"),
-                dep.get("scheduled_departure_str"),
-            )
-
-        result.append({
-            "bollard":          bollard,
-            "departures":       deps[:rows_per_bollard],
-            "rows_per_bollard": rows_per_bollard,
-            "error":            None,
-        })
-
-    return result
+    rows_per_bollard = max(1, min(5, int(rows)))
+    deps = build_stop_departures(symbol, rows_per_bollard)
+    return {
+        "symbol":           symbol,
+        "departures":       deps,
+        "rows_per_bollard": rows_per_bollard,
+        "error":            None,
+    }
 
 
 @app.get("/api/board-config")

@@ -149,6 +149,109 @@
               overflow: hidden; text-overflow: ellipsis; }
 .ac-drop li:hover, .ac-drop li.ac-active { background: var(--sep); }
 .ac-sub   { color: var(--dim); font-size: 0.72rem; margin-left: 6px; }
+
+/* ── Edytor tablic ────────────────────────────────────────────────────────── */
+.boards-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.board-tabs { display: flex; gap: 6px; }
+.board-tab {
+  padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  background: var(--bg3); border: 1px solid var(--sep); color: var(--dim);
+  font-size: 0.85rem;
+}
+.board-tab.active { background: var(--bg4); color: var(--gold); border-color: var(--gold); font-weight: bold; }
+.board-name-input {
+  background: var(--bg); border: 1px solid var(--sep); border-radius: 5px;
+  color: var(--text); font-size: 0.88rem; padding: 6px 9px; outline: none; min-width: 160px;
+}
+.board-name-input:focus { border-color: var(--gold); }
+.rowh-label { font-size: 0.8rem; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+.rowh-label input {
+  background: var(--bg); border: 1px solid var(--sep); border-radius: 5px;
+  color: var(--text); padding: 5px 7px; outline: none;
+}
+
+.boards-main { display: flex; gap: 14px; align-items: flex-start; }
+.boards-palette {
+  flex: 0 0 200px; display: flex; flex-direction: column; gap: 6px;
+}
+.palette-item {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+  background: var(--bg3); border: 1px solid var(--sep); border-radius: 7px;
+  color: var(--text); cursor: pointer; font-size: 0.9rem;
+}
+.palette-item:hover { background: var(--bg4); border-color: var(--gold); }
+.palette-item i { color: var(--gold); width: 18px; text-align: center; }
+.boards-hint { font-size: 0.72rem; color: var(--dim); margin-top: 8px; line-height: 1.5; }
+
+.boards-canvas-wrap { flex: 1; min-width: 0; overflow: auto; }
+.boards-canvas {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: var(--cell-h, 38px);
+  gap: 4px;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent calc(var(--cell-h,38px) - 1px), var(--sep) var(--cell-h,38px));
+  border: 1px solid var(--sep);
+  border-radius: 8px;
+  padding: 0;
+  position: relative;
+  min-height: 200px;
+}
+.bw {
+  position: relative;
+  background: var(--bg4); border: 1px solid var(--gold);
+  border-radius: 6px; overflow: hidden;
+  display: flex; flex-direction: column;
+  cursor: grab; user-select: none;
+}
+.bw:active { cursor: grabbing; }
+.bw-head {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+  background: rgba(245,166,35,0.15); font-size: 0.78rem; color: var(--text);
+}
+.bw-head i { color: var(--gold); }
+.bw-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bw-remove { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.9rem; padding: 0 2px; }
+.bw-sub { padding: 2px 8px; font-size: 0.68rem; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bw-resize {
+  position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
+  cursor: nwse-resize; background:
+    linear-gradient(135deg, transparent 50%, var(--gold) 50%);
+  border-bottom-right-radius: 6px;
+}
+.boards-empty-canvas { color: var(--dim); font-size: 0.85rem; padding: 30px; text-align: center; grid-column: 1 / -1; }
+
+/* Modal wyboru przystanku */
+.stop-picker-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 500;
+}
+.stop-picker-box {
+  background: var(--bg2); border: 1px solid var(--sep); border-radius: 10px;
+  padding: 18px; width: 460px; max-width: 92vw; max-height: 86vh; overflow: auto;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.stop-picker-box input[type="text"] {
+  background: var(--bg); border: 1px solid var(--sep); border-radius: 5px;
+  color: var(--text); font-size: 0.9rem; padding: 7px 10px; outline: none;
+}
+.stop-picker-box input:focus { border-color: var(--gold); }
+.sp-stops { list-style: none; max-height: 160px; overflow-y: auto; border: 1px solid var(--sep); border-radius: 5px; }
+.sp-stops:empty { display: none; }
+.sp-stops li { padding: 6px 10px; cursor: pointer; font-size: 0.85rem; }
+.sp-stops li:hover { background: var(--sep); }
+.sp-bollards { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.sp-boll {
+  padding: 6px 10px; border: 1px solid var(--sep); border-radius: 5px;
+  cursor: pointer; font-size: 0.82rem;
+}
+.sp-boll:hover { background: var(--bg4); }
+.sp-boll.active { border-color: var(--gold); background: rgba(245,166,35,0.12); }
+.sp-rows-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--dim); }
+.sp-actions { display: flex; gap: 8px; }
 </style>
 </head>
 <body class="config-body">
@@ -162,7 +265,10 @@
 
   <!-- ── Zakładki ──────────────────────────────────────────────────────────── -->
   <div class="cfg-tabs">
-    <button class="cfg-tab active" onclick="switchTab('stops')">
+    <button class="cfg-tab active" onclick="switchTab('boards')">
+      <i class="fa-solid fa-table-cells-large"></i> Tablice
+    </button>
+    <button class="cfg-tab" onclick="switchTab('stops')">
       <i class="fa-solid fa-bus"></i> Przystanki
     </button>
     <button class="cfg-tab" onclick="switchTab('sport')">
@@ -180,9 +286,56 @@
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════════════
+       ZAKŁADKA: TABLICE (edytor drag & drop)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="panel-boards" class="cfg-panel active">
+    <div class="boards-toolbar">
+      <div class="board-tabs" id="board-tabs"></div>
+      <button class="btn-dyn-add" onclick="addBoard()">➕ Nowa tablica</button>
+      <input type="text" id="board-name" class="board-name-input" placeholder="Nazwa tablicy" oninput="onBoardNameInput()">
+      <label class="rowh-label">Wys. wiersza
+        <input type="number" id="board-rowh" min="40" max="160" value="90" style="width:64px" oninput="onRowHeightInput()">
+      </label>
+      <button class="btn-remove" onclick="removeBoard()">🗑 Usuń tablicę</button>
+    </div>
+    <div class="boards-main">
+      <div class="boards-palette">
+        <div class="cfg-section-title">Moduły</div>
+        <div id="boards-palette"></div>
+        <div class="boards-hint">Kliknij moduł, by dodać go do tablicy.<br>Przeciągnij kafelek, by przesunąć. Uchwyt w prawym-dolnym rogu zmienia rozmiar.</div>
+      </div>
+      <div class="boards-canvas-wrap">
+        <div class="boards-canvas" id="boards-canvas"></div>
+      </div>
+    </div>
+    <div class="cfg-footer">
+      <button onclick="saveBoards()" class="btn-save">✔ Zapisz tablice i wróć do tablicy</button>
+      <span id="boards-msg" class="cfg-msg"></span>
+    </div>
+  </div>
+
+  <!-- Modal wyboru przystanku dla encji 'transit' -->
+  <div id="stop-picker" class="stop-picker-overlay" style="display:none">
+    <div class="stop-picker-box">
+      <div class="cfg-section-title">Wybierz przystanek i słupek</div>
+      <input type="text" id="sp-search" placeholder="Wpisz nazwę przystanku…" oninput="spSearch()" autocomplete="off">
+      <ul id="sp-stops" class="sp-stops"></ul>
+      <div id="sp-bollards" class="sp-bollards"></div>
+      <div class="sp-rows-row">
+        <label>Liczba wierszy (1–5)</label>
+        <input type="number" id="sp-rows" min="1" max="5" value="3" style="width:54px">
+      </div>
+      <div class="sp-actions">
+        <button class="btn-save" onclick="spConfirm()">Dodaj do tablicy</button>
+        <button class="btn-remove" onclick="spClose()">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
        ZAKŁADKA: PRZYSTANKI (istniejąca logika)
        ═══════════════════════════════════════════════════════════════════════ -->
-  <div id="panel-stops" class="cfg-panel active">
+  <div id="panel-stops" class="cfg-panel">
     <div class="config-main">
 
       <!-- Lewa: wyszukiwanie -->
@@ -460,8 +613,8 @@
 // ZAKŁADKI
 // ═════════════════════════════════════════════════════════════════════════════
 
-const TAB_IDS = ["stops","sport","photos","calendar","settings"];
-let activeTab = "stops";
+const TAB_IDS = ["boards","stops","sport","photos","calendar","settings"];
+let activeTab = "boards";
 
 function switchTab(id) {
   activeTab = id;
@@ -469,7 +622,280 @@ function switchTab(id) {
     document.querySelectorAll(".cfg-tab")[TAB_IDS.indexOf(t)].classList.toggle("active", t === id);
     document.getElementById("panel-" + t).classList.toggle("active", t === id);
   });
-  if (id !== "stops" && !settingsLoaded) loadSettings();
+  if (id === "boards") { if (!boardsLoaded) loadBoardsEditor(); }
+  else if (id !== "stops" && !settingsLoaded) loadSettings();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// EDYTOR TABLIC (drag & drop, siatka 12-kolumn)
+// ═════════════════════════════════════════════════════════════════════════════
+
+const GRID_COLS = 12;
+const GRID_ROWS = 16;          // wysokość płótna w komórkach
+const MAX_BOARDS = 3;
+
+const MODULE_TYPES = [
+  { type: "clock",    label: "Zegar",      icon: "fa-clock",         w: 3, h: 2 },
+  { type: "weather",  label: "Pogoda",     icon: "fa-cloud-sun",     w: 4, h: 3 },
+  { type: "calendar", label: "Kalendarz",  icon: "fa-calendar-days", w: 3, h: 4 },
+  { type: "waste",    label: "Śmieci",     icon: "fa-trash",         w: 3, h: 2 },
+  { type: "photos",   label: "Zdjęcia",    icon: "fa-image",         w: 5, h: 4 },
+  { type: "sports",   label: "Sport",      icon: "fa-trophy",        w: 4, h: 3 },
+  { type: "transit",  label: "Przystanek", icon: "fa-bus",           w: 4, h: 5 },
+];
+const MODULE_BY_TYPE = Object.fromEntries(MODULE_TYPES.map(m => [m.type, m]));
+
+let boardsState  = null;
+let curBoard     = 0;
+let boardsLoaded = false;
+let widgetSeq    = 1;
+
+async function loadBoardsEditor() {
+  try {
+    const r = await fetch("/api/boards");
+    boardsState = await r.json();
+  } catch(e) {
+    boardsState = { active: 0, row_height: 90, boards: [] };
+  }
+  if (!Array.isArray(boardsState.boards)) boardsState.boards = [];
+  if (!boardsState.row_height) boardsState.row_height = 90;
+  curBoard = Math.min(boardsState.active || 0, Math.max(0, boardsState.boards.length - 1));
+  boardsLoaded = true;
+  document.getElementById("board-rowh").value = boardsState.row_height;
+  renderPalette();
+  renderBoardTabs();
+  renderCanvas();
+}
+
+function renderPalette() {
+  document.getElementById("boards-palette").innerHTML = MODULE_TYPES.map(m => `
+    <div class="palette-item" onclick="paletteAdd('${m.type}')">
+      <i class="fa-solid ${m.icon}"></i> ${m.label}
+    </div>`).join("");
+}
+
+function renderBoardTabs() {
+  const el = document.getElementById("board-tabs");
+  el.innerHTML = boardsState.boards.map((b, i) =>
+    `<div class="board-tab ${i === curBoard ? 'active' : ''}" onclick="selectBoard(${i})">${esc(b.name || ('Tablica ' + (i+1)))}</div>`
+  ).join("");
+  const nameInp = document.getElementById("board-name");
+  nameInp.value = boardsState.boards[curBoard] ? (boardsState.boards[curBoard].name || "") : "";
+  nameInp.disabled = !boardsState.boards.length;
+}
+
+function selectBoard(i) { curBoard = i; renderBoardTabs(); renderCanvas(); }
+
+function addBoard() {
+  if (boardsState.boards.length >= MAX_BOARDS) { showBoardsMsg(`Maksymalnie ${MAX_BOARDS} tablice.`); return; }
+  const n = boardsState.boards.length + 1;
+  boardsState.boards.push({ id: "b" + Date.now(), name: "Tablica " + n, widgets: [] });
+  curBoard = boardsState.boards.length - 1;
+  renderBoardTabs(); renderCanvas();
+}
+
+function removeBoard() {
+  if (!boardsState.boards.length) return;
+  if (!confirm("Usunąć tę tablicę?")) return;
+  boardsState.boards.splice(curBoard, 1);
+  curBoard = Math.max(0, curBoard - 1);
+  renderBoardTabs(); renderCanvas();
+}
+
+function onBoardNameInput() {
+  if (!boardsState.boards[curBoard]) return;
+  boardsState.boards[curBoard].name = document.getElementById("board-name").value;
+  renderBoardTabs();
+}
+
+function onRowHeightInput() {
+  boardsState.row_height = Math.max(40, Math.min(160, parseInt(document.getElementById("board-rowh").value, 10) || 90));
+}
+
+function curWidgets() {
+  return boardsState.boards[curBoard] ? boardsState.boards[curBoard].widgets : null;
+}
+
+function nextFreeY() {
+  const ws = curWidgets() || [];
+  return ws.reduce((max, w) => Math.max(max, (w.y || 0) + (w.h || 1)), 0);
+}
+
+function paletteAdd(type) {
+  if (!boardsState.boards.length) { showBoardsMsg("Najpierw dodaj tablicę."); return; }
+  if (type === "transit") { openStopPicker(); return; }
+  addWidget(type, {});
+}
+
+function addWidget(type, config) {
+  const def = MODULE_BY_TYPE[type];
+  const y = nextFreeY();
+  curWidgets().push({
+    id: "w" + (widgetSeq++) + "_" + Date.now(),
+    type, x: 0, y: Math.min(y, GRID_ROWS - 1),
+    w: def.w, h: def.h, config: config || {},
+  });
+  renderCanvas();
+}
+
+function removeWidget(id) {
+  const ws = curWidgets();
+  const i = ws.findIndex(w => w.id === id);
+  if (i >= 0) { ws.splice(i, 1); renderCanvas(); }
+}
+
+function applyWidgetStyle(el, w) {
+  el.style.gridColumn = `${(w.x || 0) + 1} / span ${w.w}`;
+  el.style.gridRow    = `${(w.y || 0) + 1} / span ${w.h}`;
+}
+
+function renderCanvas() {
+  const canvas = document.getElementById("boards-canvas");
+  const cellH = 38;
+  canvas.style.setProperty("--cell-h", cellH + "px");
+  canvas.style.gridTemplateRows = `repeat(${GRID_ROWS}, ${cellH}px)`;
+  canvas.innerHTML = "";
+
+  const ws = curWidgets();
+  if (!ws) {
+    canvas.innerHTML = `<div class="boards-empty-canvas">Brak tablic — dodaj tablicę powyżej.</div>`;
+    return;
+  }
+  if (!ws.length) {
+    canvas.innerHTML = `<div class="boards-empty-canvas">Pusta tablica — kliknij moduł z listy po lewej.</div>`;
+    return;
+  }
+
+  for (const w of ws) {
+    const def = MODULE_BY_TYPE[w.type] || { label: w.type, icon: "fa-cube" };
+    const el = document.createElement("div");
+    el.className = "bw";
+    applyWidgetStyle(el, w);
+    const sub = w.type === "transit"
+      ? `<div class="bw-sub">${esc(w.config.label || "")} · ${esc(w.config.symbol || "")} · ${w.config.rows || 3} w.</div>`
+      : "";
+    el.innerHTML = `
+      <div class="bw-head">
+        <i class="fa-solid ${def.icon}"></i>
+        <span class="bw-title">${esc(def.label)}</span>
+        <button class="bw-remove" onclick="removeWidget('${w.id}')" title="Usuń">✕</button>
+      </div>
+      ${sub}
+      <div class="bw-resize"></div>`;
+    attachDrag(el, w);
+    canvas.appendChild(el);
+  }
+}
+
+function attachDrag(el, w) {
+  el.addEventListener("pointerdown", (e) => {
+    if (e.target.classList.contains("bw-remove")) return;
+    const isResize = e.target.classList.contains("bw-resize");
+    const canvas = document.getElementById("boards-canvas");
+    const rect = canvas.getBoundingClientRect();
+    const cellW = rect.width / GRID_COLS;
+    const cellH = 38 + 4; // wysokość komórki + gap
+    const startX = e.clientX, startY = e.clientY;
+    const ox = w.x || 0, oy = w.y || 0, ow = w.w, oh = w.h;
+    el.setPointerCapture(e.pointerId);
+
+    function move(ev) {
+      const dCol = Math.round((ev.clientX - startX) / cellW);
+      const dRow = Math.round((ev.clientY - startY) / cellH);
+      if (isResize) {
+        w.w = Math.max(1, Math.min(GRID_COLS - (w.x || 0), ow + dCol));
+        w.h = Math.max(1, Math.min(GRID_ROWS - (w.y || 0), oh + dRow));
+      } else {
+        w.x = Math.max(0, Math.min(GRID_COLS - w.w, ox + dCol));
+        w.y = Math.max(0, Math.min(GRID_ROWS - w.h, oy + dRow));
+      }
+      applyWidgetStyle(el, w);
+    }
+    function up() {
+      el.releasePointerCapture(e.pointerId);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+    }
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    e.preventDefault();
+  });
+}
+
+async function saveBoards() {
+  if (boardsState.boards.length) onBoardNameInput();
+  onRowHeightInput();
+  boardsState.active = Math.min(curBoard, Math.max(0, boardsState.boards.length - 1));
+  try {
+    const r = await fetch("/api/boards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(boardsState),
+    });
+    if (r.ok) { window.location.href = "/"; }
+    else { showBoardsMsg("⚠ Błąd zapisu"); }
+  } catch(e) {
+    showBoardsMsg("⚠ Błąd sieci");
+  }
+}
+
+function showBoardsMsg(msg) {
+  const el = document.getElementById("boards-msg");
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ""; }, 3000);
+}
+
+// ── Modal wyboru przystanku (encja 'transit') ───────────────────────────────────
+let spStops = [], spBollards = [], spStopName = "", spSelectedBollard = null, spJob = null;
+
+function openStopPicker() {
+  spSelectedBollard = null; spStops = []; spBollards = []; spStopName = "";
+  document.getElementById("sp-search").value = "";
+  document.getElementById("sp-stops").innerHTML = "";
+  document.getElementById("sp-bollards").innerHTML = "";
+  document.getElementById("sp-rows").value = 3;
+  document.getElementById("stop-picker").style.display = "flex";
+  document.getElementById("sp-search").focus();
+}
+function spClose() { document.getElementById("stop-picker").style.display = "none"; }
+
+function spSearch() {
+  clearTimeout(spJob);
+  spJob = setTimeout(async () => {
+    const q = document.getElementById("sp-search").value.trim();
+    if (q.length < 2) { document.getElementById("sp-stops").innerHTML = ""; return; }
+    try {
+      const r = await fetch(`/api/stops/search?q=${encodeURIComponent(q)}`);
+      spStops = await r.json();
+      document.getElementById("sp-stops").innerHTML =
+        spStops.map((s, i) => `<li onclick="spPickStop(${i})">${esc(s.name)}</li>`).join("");
+    } catch(e) {}
+  }, 350);
+}
+
+async function spPickStop(i) {
+  spStopName = spStops[i].name;
+  spSelectedBollard = null;
+  try {
+    const r = await fetch(`/api/stops/bollards?stop_name=${encodeURIComponent(spStopName)}`);
+    spBollards = await r.json();
+    document.getElementById("sp-bollards").innerHTML = spBollards.map((b, j) =>
+      `<div class="sp-boll" onclick="spPickBollard(${j})">
+        <strong>${esc(b.symbol)}</strong> — ${esc((b.lines || []).join(", "))}
+      </div>`).join("");
+  } catch(e) {}
+}
+
+function spPickBollard(j) {
+  spSelectedBollard = spBollards[j];
+  document.querySelectorAll(".sp-boll").forEach((d, k) => d.classList.toggle("active", k === j));
+}
+
+function spConfirm() {
+  if (!spSelectedBollard) { showBoardsMsg("Wybierz słupek."); return; }
+  const rows = Math.max(1, Math.min(5, parseInt(document.getElementById("sp-rows").value, 10) || 3));
+  addWidget("transit", { symbol: spSelectedBollard.symbol, label: spStopName, rows });
+  spClose();
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1029,6 +1455,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const mlbInput = document.getElementById("mlb-team");
   if (mlbInput) attachAutocomplete(mlbInput, fetchMlbTeams, item => { mlbInput.value = item.name; });
+
+  // Zakładka "Tablice" jest aktywna domyślnie — wczytaj edytor
+  loadBoardsEditor();
 });
 </script>
 </body>

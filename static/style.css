@@ -45,47 +45,57 @@ html, body {
   overflow: hidden;
 }
 
-/* ── Dashboard — siatka 3-kolumnowa ──────────────────────────────────────── */
-.dashboard {
+/* ── Szkielet tablicy — responsywna siatka 12-kolumnowa (a'la HA Sections) ──── */
+.board-root {
+  --row-h: 90px;
   display: grid;
-  grid-template-columns: 0.55fr 1.5fr 1.8fr;
-  grid-template-rows: 1fr;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: var(--row-h);
   gap: 8px;
   padding: 8px 8px 34px 8px;
   height: 100vh;
   width: 100vw;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-.col-left {
+/* Pozycjonowanie widgetu wg --x/--y (1-based) i --w/--h (span w komórkach) */
+.board-root > .tile {
+  grid-column: var(--x, 1) / span var(--w, 3);
+  grid-row:    var(--y, 1) / span var(--h, 3);
+}
+
+.board-empty-mode {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
+  align-items: center;
+  justify-content: center;
 }
-
-.col-mid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
+.board-empty {
+  color: var(--dim);
+  font-size: 1.1rem;
+  text-align: center;
 }
+.board-empty a { color: var(--gold); }
 
-.col-right {
-  min-height: 0;
-  height: 100%;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--sep) var(--bg);
-}
-
-/* Kafelek bazowy */
+/* Kafelek bazowy — nagłówek + treść w pionie */
 .tile {
   background: var(--bg2);
   border: 1px solid var(--sep);
   border-radius: 10px;
   overflow: hidden;
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Generyczna treść kafelka — wypełnia resztę, scrolluje przy nadmiarze */
+.tile-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sep) var(--bg);
 }
 
 /* Nagłówek kafelka */
@@ -182,53 +192,40 @@ html, body {
   padding: 20px;
 }
 
-.tile-clock {
-  background: var(--bg2);
-  border: 1px solid var(--sep);
-  border-radius: 10px;
-  padding: 24px 16px;
+.clock-body {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 8px;
+  padding: 16px;
+  overflow: hidden;
 }
 
 .clock-time {
   font-family: var(--font-mono);
-  font-size: 3rem;
+  font-size: clamp(1.6rem, 6cqw, 3rem);
   font-weight: bold;
   color: var(--gold);
   letter-spacing: 2px;
 }
 
 .clock-date {
-  font-size: 0.95rem;
+  font-size: clamp(0.7rem, 2.4cqw, 0.95rem);
   color: var(--text);
   text-align: center;
 }
 
-.clock-status {
-  font-size: 0.72rem;
-  color: var(--dim);
-  text-align: center;
-  margin-top: 8px;
-}
+/* Kafelek odjazdów (encja transit) — nagłówek + treść wypełniają kafelek */
+.tile-transit { container-type: inline-size; }
+.tile-clock   { container-type: inline-size; }
 
-#departures-container {
-  width: 100%;
-  height: 100%;
-}
-
-.tile-bollard {
-  background: var(--bg2);
-  border: 1px solid var(--sep);
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
+.dep-wrap {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
+  padding: 0;
 }
 
 .bollard-header {
@@ -304,7 +301,8 @@ html, body {
 }
 
 .dep-row {
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-height: 28px;
   border-bottom: 1px solid var(--sep);
   display: flex;
   align-items: center;
@@ -487,6 +485,8 @@ html, body {
   align-items: center;
   gap: 10px;
 }
+
+.sb-board { color: var(--gold); font-weight: bold; }
 
 /* ── Overlay setup ────────────────────────────────────────────────────────── */
 .overlay-setup {
@@ -1260,3 +1260,45 @@ body.config-body { overflow: auto; height: auto; }
 
 .sport-scorer-ours { color: var(--green); }
 .sport-scorer-opp  { color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSYWNOŚĆ
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Wąski kafelek odjazdów — chowamy mniej istotne kolumny (Rzecz./Opóźn./Pojazd) */
+@container (max-width: 520px) {
+  .dep-grid {
+    grid-template-columns: 40px 60px minmax(0,1fr) minmax(0,1fr) 70px;
+  }
+  .dep-real, .dep-delay, .dep-veh-cell,
+  .dep-header .dep-grid span:nth-child(6),
+  .dep-header .dep-grid span:nth-child(7),
+  .dep-header .dep-grid span:nth-child(8) { display: none; }
+}
+@container (max-width: 340px) {
+  .dep-grid {
+    grid-template-columns: 36px 1fr 60px;
+  }
+  .dep-sched, .dep-current,
+  .dep-header .dep-grid span:nth-child(2),
+  .dep-header .dep-grid span:nth-child(4) { display: none; }
+}
+
+/* Telefon / wąski ekran — siatka przepływa do jednej kolumny, kafelki stają w pionie */
+@media (max-width: 768px) {
+  html, body { overflow: auto; }
+  .board-root {
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(var(--row-h), auto);
+    height: auto;
+    min-height: 100vh;
+    width: 100%;
+    overflow: visible;
+  }
+  .board-root > .tile {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+    min-height: calc(var(--h, 3) * var(--row-h));
+  }
+  .statusbar { position: static; flex-wrap: wrap; height: auto; }
+}
