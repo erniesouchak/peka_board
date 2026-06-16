@@ -551,12 +551,21 @@ async function switchBoard(payload) {
   } catch(e) {}
 }
 
-// Keypad (USB jako klawiatura) — 1/2/3 = tablica, strzałki = następna/poprzednia
+// Keypad USB (widziany jako klawiatura) — 6 klawiszy A–F + pokrętło wysyłające klawisze:
+//   A/B/C   → bezpośredni wybór Tablicy 1/2/3 (D/E/F wolne na przyszłość)
+//   pokrętło: obrót w lewo = serie "1" → poprzednia; w prawo = serie "3" → następna
+//             klik = "2" → powrót do Tablicy 1
+//   zapas:   strzałki / PageUp-Down = poprzednia/następna
 document.addEventListener("keydown", (e) => {
+  if (e.repeat) return;  // pomiń auto-powtarzanie przy przytrzymaniu klawisza
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-  if (e.key >= "1" && e.key <= "9") { switchBoard({ index: parseInt(e.key, 10) - 1 }); }
-  else if (e.key === "ArrowRight" || e.key === "PageDown") { switchBoard({ delta: 1 }); }
-  else if (e.key === "ArrowLeft"  || e.key === "PageUp")   { switchBoard({ delta: -1 }); }
+  const k = (e.key || "").toLowerCase();
+  if      (k === "a") switchBoard({ index: 0 });
+  else if (k === "b") switchBoard({ index: 1 });
+  else if (k === "c") switchBoard({ index: 2 });
+  else if (k === "1" || k === "arrowleft"  || k === "pageup")   switchBoard({ delta: -1 });
+  else if (k === "3" || k === "arrowright" || k === "pagedown") switchBoard({ delta: 1 });
+  else if (k === "2") switchBoard({ index: 0 });
 });
 
 // SSE — zmiany aktywnej tablicy oraz zapisy układu z edytora
